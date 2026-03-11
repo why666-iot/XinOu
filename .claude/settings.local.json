@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pandoc --version 2>/dev/null | head -1)"
+    ]
+  }
+}

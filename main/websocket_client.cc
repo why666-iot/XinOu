@@ -129,7 +129,7 @@ esp_err_t WebSocketClient::connect() {
     ws_cfg.buffer_size = BUFFER_SIZE;     // 接收缓冲区8KB
     ws_cfg.task_stack = TASK_STACK_SIZE;  // 任务栈大小8KB
     ws_cfg.reconnect_timeout_ms = 10000;  // 重连超时10秒
-    ws_cfg.network_timeout_ms = 10000;    // 网络超时10秒
+    ws_cfg.network_timeout_ms = 30000;    // 网络超时30秒（服务器转发到LLM可能慢）
     
     // 🎆 创建 WebSocket客户端实例
     client_ = esp_websocket_client_init(&ws_cfg);

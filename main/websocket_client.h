@@ -105,19 +105,19 @@ public:
      * @param timeout_ms 超时时间（默认永不超时）
      * @return 发送的字节数，-1=失败
      */
-    int sendText(const std::string& text, int timeout_ms = portMAX_DELAY);
-    
+    int sendText(const std::string& text, int timeout_ms = 5000);
+
     /**
      * @brief 发送二进制数据
-     * 
+     *
      * 用于发送音频等二进制格式的数据。
-     * 
+     *
      * @param data 数据指针
      * @param len 数据字节数
-     * @param timeout_ms 超时时间（默认永不超时）
+     * @param timeout_ms 超时时间（默认5秒）
      * @return 发送的字节数，-1=失败
      */
-    int sendBinary(const uint8_t* data, size_t len, int timeout_ms = portMAX_DELAY);
+    int sendBinary(const uint8_t* data, size_t len, int timeout_ms = 5000);
     
     /**
      * @brief 发送ping包

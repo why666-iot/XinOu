@@ -49,6 +49,9 @@ Thumbs.db
 server/response_records/
 server/user_records/
 
+# Debug audio recordings
+debug_audio/
+
 # Mock voices
 main/mock_voices/
 

@@ -255,7 +255,7 @@ private:
     size_t streaming_buffer_size;       // 缓冲区大小
     size_t streaming_write_pos;         // 写入位置
     size_t streaming_read_pos;          // 读取位置
-    static const size_t STREAMING_BUFFER_SIZE = 32768; // 32KB环形缓冲区
+    static const size_t STREAMING_BUFFER_SIZE = 65536; // 64KB环形缓冲区（支持~2秒缓冲）
     static const size_t STREAMING_CHUNK_SIZE = 3200;   // 每次播放3200字节（200ms）
 
     // 🏷️ 日志标签

@@ -119,9 +119,9 @@ class WebSocketAudioServer:
         3. 初始化大模型客户端
         """
         # 📁 设置音频保存目录
-        self.output_dir = os.path.join(
-            os.path.dirname(__file__), "user_records"
-        )  # 用户录音
+        # debug_audio 在项目根目录，方便调试时直接双击播放WAV
+        project_root = os.path.dirname(os.path.dirname(__file__))
+        self.output_dir = os.path.join(project_root, "debug_audio")  # 用户录音（WAV）
         self.response_dir = os.path.join(
             os.path.dirname(__file__), "response_records"
         )  # AI响应
@@ -358,9 +358,19 @@ class WebSocketAudioServer:
                             print(f"⚠️ [{client_ip}] 未启用AI模型，无法生成响应")
 
                     elif event == "recording_cancelled":
-                        print(f"⚠️ [{client_ip}] 录音取消")
+                        print(f"⚠️ [{client_ip}] 录音取消（ESP32本地命令词处理）")
                         client_state["is_recording"] = False
                         client_state["audio_buffer"] = bytearray()
+                        # 关闭LLM连接，避免悬挂会话
+                        if client_state["realtime_client"]:
+                            try:
+                                if client_state["message_task"]:
+                                    client_state["message_task"].cancel()
+                                    client_state["message_task"] = None
+                                await client_state["realtime_client"].close()
+                            except Exception:
+                                pass
+                            client_state["realtime_client"] = None
 
                 except json.JSONDecodeError as e:
                     print(f"❌ [{client_ip}] JSON解析错误: {e}")
@@ -449,8 +459,24 @@ class WebSocketAudioServer:
             return None
 
         try:
+            import numpy as np
+
             # 合并所有音频数据
             audio_data = b"".join(audio_buffer)
+
+            # 🔊 音频归一化：INMP441原始输出振幅极低，人耳几乎听不到
+            # 将音量放大到16位PCM满量程的80%，方便调试回放
+            audio_array = np.frombuffer(audio_data, dtype=np.int16).copy()
+            max_val = np.max(np.abs(audio_array))
+            if max_val > 0:
+                # 归一化到满量程80%（留20%余量防止削波）
+                scale_factor = (32767 * 0.8) / max_val
+                audio_array = np.clip(audio_array * scale_factor, -32768, 32767).astype(np.int16)
+                print(f"   🔊 音频归一化: 原始峰值={max_val}, 放大倍数={scale_factor:.1f}x")
+            else:
+                print(f"   ⚠️ 音频数据全为零，可能录音失败")
+
+            normalized_data = audio_array.tobytes()
 
             # 生成文件名
             timestamp_str = (
@@ -461,31 +487,22 @@ class WebSocketAudioServer:
             wav_filename = os.path.join(
                 self.output_dir, f"recording_{timestamp_str}.wav"
             )
-            mp3_filename = os.path.join(
-                self.output_dir, f"recording_{timestamp_str}.mp3"
-            )
 
-            # 保存为WAV文件
+            # 保存为WAV文件（Windows可直接双击播放）
             with wave.open(wav_filename, "wb") as wav_file:
                 wav_file.setnchannels(CHANNELS)
                 wav_file.setsampwidth(BIT_DEPTH // 8)
                 wav_file.setframerate(SAMPLE_RATE)
-                wav_file.writeframes(audio_data)
-
-            # 转换为MP3
-            audio = AudioSegment.from_wav(wav_filename)
-            audio.export(mp3_filename, format="mp3", bitrate="128k")
-
-            # 删除临时WAV文件
-            os.remove(wav_filename)
+                wav_file.writeframes(normalized_data)
 
             # 显示音频信息
             duration = len(audio_data) / BYTES_PER_SAMPLE / SAMPLE_RATE
-            print(f"\n✅ 音频信息:")
+            print(f"\n✅ 调试录音已保存:")
+            print(f"   文件: {wav_filename}")
             print(f"   时长: {duration:.2f} 秒")
             print(f"   大小: {len(audio_data) / 1024:.1f} KB")
 
-            return mp3_filename
+            return wav_filename
 
         except Exception as e:
             print(f"\n❌ 保存音频失败: {e}")

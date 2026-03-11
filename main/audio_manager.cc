@@ -238,16 +238,60 @@ bool AudioManager::addStreamingAudioChunk(const uint8_t* data, size_t size) {
     // 📏 计算环形缓冲区的剩余空间
     size_t available_space;
     if (streaming_write_pos >= streaming_read_pos) {
-        // 写指针在读指针后面
         available_space = streaming_buffer_size - (streaming_write_pos - streaming_read_pos) - 1;
     } else {
-        // 写指针在读指针前面（已绕回）
         available_space = streaming_read_pos - streaming_write_pos - 1;
     }
-    
+
+    // 🔄 缓冲区满时先播放已有数据腾出空间，而不是丢弃新数据
     if (size > available_space) {
-        ESP_LOGW(TAG, "流式缓冲区空间不足: 需要 %zu, 可用 %zu", size, available_space);
-        return false;
+        ESP_LOGD(TAG, "缓冲区空间不足(需要%zu,可用%zu)，先播放腾出空间", size, available_space);
+
+        // 计算当前可播放的数据量
+        size_t available_data;
+        if (streaming_write_pos >= streaming_read_pos) {
+            available_data = streaming_write_pos - streaming_read_pos;
+        } else {
+            available_data = streaming_buffer_size - streaming_read_pos + streaming_write_pos;
+        }
+
+        // 播放已有数据直到有足够空间
+        while (available_data >= STREAMING_CHUNK_SIZE && size > available_space) {
+            uint8_t chunk[STREAMING_CHUNK_SIZE];
+            size_t bytes_to_end = streaming_buffer_size - streaming_read_pos;
+            if (STREAMING_CHUNK_SIZE <= bytes_to_end) {
+                memcpy(chunk, streaming_buffer + streaming_read_pos, STREAMING_CHUNK_SIZE);
+                streaming_read_pos += STREAMING_CHUNK_SIZE;
+            } else {
+                memcpy(chunk, streaming_buffer + streaming_read_pos, bytes_to_end);
+                memcpy(chunk + bytes_to_end, streaming_buffer, STREAMING_CHUNK_SIZE - bytes_to_end);
+                streaming_read_pos = STREAMING_CHUNK_SIZE - bytes_to_end;
+            }
+            if (streaming_read_pos >= streaming_buffer_size) {
+                streaming_read_pos = 0;
+            }
+
+            esp_err_t ret = bsp_play_audio_stream(chunk, STREAMING_CHUNK_SIZE);
+            if (ret != ESP_OK) {
+                ESP_LOGE(TAG, "腾空间播放失败: %s", esp_err_to_name(ret));
+                break;
+            }
+
+            // 重新计算空间
+            if (streaming_write_pos >= streaming_read_pos) {
+                available_space = streaming_buffer_size - (streaming_write_pos - streaming_read_pos) - 1;
+                available_data = streaming_write_pos - streaming_read_pos;
+            } else {
+                available_space = streaming_read_pos - streaming_write_pos - 1;
+                available_data = streaming_buffer_size - streaming_read_pos + streaming_write_pos;
+            }
+        }
+
+        // 如果播放后仍然空间不足，才真正丢弃
+        if (size > available_space) {
+            ESP_LOGW(TAG, "流式缓冲区空间不足: 需要 %zu, 可用 %zu", size, available_space);
+            return false;
+        }
     }
     
     // 📝 将数据写入环形缓冲区

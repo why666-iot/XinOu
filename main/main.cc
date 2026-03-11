@@ -59,10 +59,11 @@ extern "C"
 #include "esp_log.h"                // ESP日志系统
 #include "mock_voices/hi.h"         // 欢迎音频数据文件
 #include "mock_voices/ok.h"         // 确认音频数据文件
-#include "mock_voices/bye.h"     // 再见音频数据文件
+#include "mock_voices/bye.h"        // 再见音频数据文件
 #include "mock_voices/custom.h"     // 自定义音频数据文件
 #include "driver/gpio.h"            // GPIO驱动
 #include "nvs_flash.h"              // NVS存储
+#include "esp_task_wdt.h"           // 看门狗，防止长运算触发WDT
 }
 
 #include "audio_manager.h"          // 音频管理器
@@ -79,7 +80,7 @@ static const char *TAG = "语音识别"; // 日志标签
 #define WIFI_PASS "why666666"           // 您的WiFi密码
 
 // 🌐 WebSocket服务器配置
-#define WS_URI "ws://10.126.3.53:8888" // 请改为您的电脑IP地址:8888
+#define WS_URI "ws://10.189.189.53:8888" // 请改为您的电脑IP地址:8888
 
 // WiFi和WebSocket管理器
 static WiFiManager* wifi_manager = nullptr;
@@ -150,6 +151,21 @@ static TickType_t recording_timeout_start = 0;  // 开始计时的时间点
 #define RECORDING_TIMEOUT_MS 10000              // 等待说话超时（10秒没说话就退出）
 static bool user_started_speaking = false;      // 用户是否已经开始说话
 
+// 实时流式传输标志
+static bool is_realtime_streaming = false;
+
+// 等待响应超时（防止收不到ping包导致永远卡住）
+static TickType_t response_wait_start = 0;
+#define RESPONSE_TIMEOUT_MS 60000  // 60秒没收到完整响应就超时
+
+// WebSocket重连后是否需要重发录音数据
+static bool needs_ws_resend = false;
+
+// 实时流式传输发送缓冲区（攒满再发，减少WebSocket帧频率和TCP压力）
+#define STREAM_SEND_BUF_SIZE 4096
+static uint8_t stream_send_buf[STREAM_SEND_BUF_SIZE];
+static size_t stream_send_buf_pos = 0;
+
 /**
  * @brief WebSocket事件处理函数
  * 
@@ -164,6 +180,12 @@ static void on_websocket_event(const WebSocketClient::EventData& event)
     {
     case WebSocketClient::EventType::CONNECTED:
         ESP_LOGI(TAG, "🔗 WebSocket已连接");
+        // 如果重连时仍有未完成的对话（录音中或等待响应），标记需要重发数据
+        if (current_state == STATE_WAITING_RESPONSE ||
+            (current_state == STATE_RECORDING && user_started_speaking)) {
+            ESP_LOGI(TAG, "🔄 WebSocket重连，将重发本轮录音数据...");
+            needs_ws_resend = true;
+        }
         break;
 
     case WebSocketClient::EventType::DISCONNECTED:
@@ -184,7 +206,10 @@ static void on_websocket_event(const WebSocketClient::EventData& event)
             
             // 添加音频数据到流式播放队列
             bool added = audio_manager->addStreamingAudioChunk(event.data, event.data_len);
-            
+
+            // 收到数据就刷新超时计时（只要数据还在流，就不超时）
+            response_wait_start = xTaskGetTickCount();
+
             if (added) {
                 ESP_LOGD(TAG, "添加流式音频块: %zu 字节", event.data_len);
             } else {
@@ -274,9 +299,6 @@ static void led_turn_off(void)
     ESP_LOGI(TAG, "外接LED熄灭");
 }
 
-// 实时流式传输标志
-static bool is_realtime_streaming = false;
-
 /**
  * @brief 配置本地命令词识别
  *
@@ -285,7 +307,7 @@ static bool is_realtime_streaming = false;
  * 
  * 工作流程：
  * 1. 清空旧的命令词列表
- * 2. 添加我们定义的新命令词（如“帮我开灯”）
+ * 2. 添加我们定义的新命令词（如"帮我开灯"）
  * 3. 更新到识别模型中
  *
  * @param multinet 语音识别的接口对象
@@ -409,12 +431,74 @@ static esp_err_t play_audio_with_stop(const uint8_t *audio_data, size_t data_len
 }
 
 /**
+ * @brief WebSocket重连后重发本轮录音数据，避免死锁
+ *
+ * 当录音期间WebSocket断开后重连，ESP32已有完整录音但服务器没收到，
+ * 这个函数把缓冲区里的音频重新发给服务器，恢复正常流程。
+ */
+static void handle_ws_resend(void)
+{
+    if (!needs_ws_resend) return;
+    if (websocket_client == nullptr || !websocket_client->isConnected()) return;
+
+    needs_ws_resend = false;
+
+    size_t rec_samples = 0;
+    const int16_t *rec_buf = audio_manager->getRecordingBuffer(rec_samples);
+
+    if (rec_samples == 0 || rec_buf == nullptr) {
+        ESP_LOGW(TAG, "重发：录音缓冲区为空，跳过");
+        return;
+    }
+
+    ESP_LOGI(TAG, "🔄 重发录音数据：%zu 样本 (%.2f 秒)",
+             rec_samples, (float)rec_samples / SAMPLE_RATE);
+
+    // 重新发送会话初始化事件
+    websocket_client->sendText("{\"event\":\"wake_word_detected\",\"model\":\"recovery\",\"timestamp\":0}", 2000);
+    vTaskDelay(pdMS_TO_TICKS(50));
+    websocket_client->sendText("{\"event\":\"recording_started\"}", 2000);
+
+    // 分块发送全部录音数据（每块1024字节，给TCP缓冲区留余量）
+    const size_t CHUNK = 1024;
+    const uint8_t *ptr = (const uint8_t *)rec_buf;
+    size_t remaining = rec_samples * sizeof(int16_t);
+
+    while (remaining > 0) {
+        if (!websocket_client->isConnected()) {
+            ESP_LOGW(TAG, "重发中途断开，等待下次重连");
+            needs_ws_resend = true;  // 下次重连继续重发
+            return;
+        }
+        size_t to_send = (remaining > CHUNK) ? CHUNK : remaining;
+        int sent = websocket_client->sendBinary(ptr, to_send, 2000);
+        if (sent < 0) {
+            ESP_LOGW(TAG, "重发写入失败，等待下次重连");
+            needs_ws_resend = true;
+            return;
+        }
+        ptr += to_send;
+        remaining -= to_send;
+        vTaskDelay(pdMS_TO_TICKS(30));  // 给TCP缓冲区和服务器喘息时间
+    }
+
+    // 发送录音结束事件
+    websocket_client->sendText("{\"event\":\"recording_ended\"}", 2000);
+    ESP_LOGI(TAG, "✅ 录音数据重发完成，继续等待服务器响应...");
+
+    // 确保状态正确
+    current_state = STATE_WAITING_RESPONSE;
+    response_wait_start = xTaskGetTickCount();
+    audio_manager->resetResponsePlayedFlag();
+}
+
+/**
  * @brief 退出对话模式
  *
- * 👋 当用户说“拜拜”或对话超时后，调用这个函数结束对话。
+ * 👋 当用户说"拜拜"或对话超时后，调用这个函数结束对话。
  * 
  * 执行步骤：
- * 1. 播放“再见”的音频
+ * 1. 播放"再见"的音频
  * 2. 断开WebSocket连接
  * 3. 清理所有状态
  * 4. 回到等待唤醒词的初始状态
@@ -441,6 +525,7 @@ static void execute_exit_logic(void)
     recording_timeout_start = 0;
     vad_speech_detected = false;
     vad_silence_frames = 0;
+    needs_ws_resend = false;  // 退出对话时清除重发标志
     
     ESP_LOGI(TAG, "返回等待唤醒状态，请说出唤醒词 '你好小智'");
 }
@@ -540,7 +625,7 @@ extern "C" void app_main(void)
     ESP_LOGI(TAG, "  - 最小语音时长: 200 ms");
     ESP_LOGI(TAG, "  - 最小静音时长: 1000 ms");
 
-    // ⑧ 加载唤醒词检测模型（识别“你好小智”）
+    // ⑧ 加载唤醒词检测模型（识别"你好小智"）
     ESP_LOGI(TAG, "正在加载唤醒词检测模型...");
 
     // 检查内存状态
@@ -621,7 +706,7 @@ extern "C" void app_main(void)
         return;
     }
 
-    // ⑨ 加载命令词识别模型（识别“开灯”、“关灯”等）
+    // ⑨ 加载命令词识别模型（识别"开灯"、"关灯"等）
     ESP_LOGI(TAG, "正在加载命令词识别模型...");
 
     // 获取中文命令词识别模型（MultiNet7）
@@ -702,7 +787,7 @@ extern "C" void app_main(void)
     }
 
     // 初始化音频管理器
-    audio_manager = new AudioManager(SAMPLE_RATE, 10, 32);  // 16kHz, 10秒录音, 32秒响应
+    audio_manager = new AudioManager(SAMPLE_RATE, 10, 1);  // 16kHz, 10秒录音, 1秒响应（流式播放不用response_buffer）
     ret = audio_manager->init();
     if (ret != ESP_OK)
     {
@@ -731,6 +816,9 @@ extern "C" void app_main(void)
 
     while (1)
     {
+        // 🔄 检查是否需要重发录音数据（WebSocket重连后恢复）
+        handle_ws_resend();
+
         // 🎧 从麦克风读取一小段音频数据
         // 这里的false表示要处理后的数据（不要原始数据）
         esp_err_t ret = bsp_get_feed_data(false, buffer, audio_chunksize);
@@ -768,7 +856,7 @@ extern "C" void app_main(void)
 
         if (current_state == STATE_WAITING_WAKEUP)
         {
-            // 🛌 休眠状态：监听唤醒词“你好小智”
+            // 🛌 休眠状态：监听唤醒词"你好小智"
             wakenet_state_t wn_state = wakenet->detect(model_data, processed_audio);
 
             if (wn_state == WAKENET_DETECTED)
@@ -796,7 +884,7 @@ extern "C" void app_main(void)
                     websocket_client->sendText(wake_msg);
                 }
 
-                // 🎵 播放“叮咚”提示音，表示准备好了
+                // 🎵 播放"叮咚"提示音，表示准备好了
                 ESP_LOGI(TAG, "播放欢迎音频...");
                 play_audio_with_stop(hi, hi_len, "欢迎音频");
 
@@ -819,7 +907,8 @@ extern "C" void app_main(void)
                 user_started_speaking = false;      // 用户还没开始说话
                 recording_timeout_start = 0;        // 第一次不设超时
                 is_realtime_streaming = false;      // 等用户说话后再开始传输
-                
+                stream_send_buf_pos = 0;           // 清空发送缓冲区
+
                 // 重置各种检测器
                 vad_reset_trigger(vad_inst);        // 重置VAD
                 multinet->clean(mn_model_data);     // 清空命令词缓冲区
@@ -836,18 +925,29 @@ extern "C" void app_main(void)
                 int samples = audio_chunksize / sizeof(int16_t);
                 audio_manager->addRecordingData(processed_audio, samples);
                 
-                // 📤 实时传输音频到服务器（边说边传，降低延迟）
+                // 📤 实时传输音频到服务器（攒满4KB再发，减少帧频率和TCP压力）
                 if (is_realtime_streaming && websocket_client != nullptr && websocket_client->isConnected())
                 {
-                    // 立即发送当前这段音频
-                    size_t bytes_to_send = samples * sizeof(int16_t);
-                    websocket_client->sendBinary((const uint8_t*)processed_audio, bytes_to_send);
-                    ESP_LOGD(TAG, "实时发送: %zu 字节", bytes_to_send);
+                    size_t bytes_to_add = samples * sizeof(int16_t);
+                    // 把当前音频块追加到发送缓冲区
+                    if (stream_send_buf_pos + bytes_to_add <= STREAM_SEND_BUF_SIZE) {
+                        memcpy(stream_send_buf + stream_send_buf_pos, processed_audio, bytes_to_add);
+                        stream_send_buf_pos += bytes_to_add;
+                    }
+                    // 缓冲区攒满了，一次性发出
+                    if (stream_send_buf_pos >= STREAM_SEND_BUF_SIZE) {
+                        websocket_client->sendBinary(stream_send_buf, stream_send_buf_pos);
+                        ESP_LOGD(TAG, "批量发送: %zu 字节", stream_send_buf_pos);
+                        stream_send_buf_pos = 0;
+                    }
                 }
                 
-                // 🎯 连续对话模式下，同时检测本地命令词（如“开灯”、“拜拜”）
-                if (is_continuous_conversation)
+                // 🎯 同时检测本地命令词（如"开灯"、"拜拜"）
+                // 仅在用户已经开始说话后才跑MultiNet（避免空跑占CPU触发看门狗）
+                if (user_started_speaking)
                 {
+                    // 让出CPU给IDLE任务喂看门狗，防止MultiNet长运算触发WDT
+                    vTaskDelay(pdMS_TO_TICKS(1));
                     esp_mn_state_t mn_state = multinet->detect(mn_model_data, processed_audio);
                     if (mn_state == ESP_MN_STATE_DETECTED)
                     {
@@ -862,8 +962,18 @@ extern "C" void app_main(void)
                             ESP_LOGI(TAG, "🎯 在录音中检测到命令词: ID=%d, 置信度=%.2f, 内容=%s, 命令='%s'",
                                      command_id, prob, mn_result->string, cmd_desc);
                             
-                            // 停止录音
+                            // 停止录音和实时传输
                             audio_manager->stopRecording();
+                            is_realtime_streaming = false;
+                            stream_send_buf_pos = 0;
+
+                            // 通知服务器取消本次录音（服务器已收到recording_started，需要告知取消）
+                            if (websocket_client != nullptr && websocket_client->isConnected()) {
+                                websocket_client->sendText("{\"event\":\"recording_cancelled\"}");
+                            }
+
+                            // 进入连续对话模式（命令执行后可以继续说话或说拜拜退出）
+                            is_continuous_conversation = true;
                             
                             // 直接处理命令，不发送到服务器
                             if (command_id == COMMAND_TURN_ON_LIGHT)
@@ -968,6 +1078,12 @@ extern "C" void app_main(void)
                         audio_manager->stopRecording();
                         is_realtime_streaming = false;  // 停止实时流式传输
 
+                        // 刷新发送缓冲区中的剩余音频
+                        if (stream_send_buf_pos > 0 && websocket_client != nullptr && websocket_client->isConnected()) {
+                            websocket_client->sendBinary(stream_send_buf, stream_send_buf_pos);
+                            stream_send_buf_pos = 0;
+                        }
+
                         // 只有在用户确实说话了才发送数据
                         size_t rec_len = 0;
                         audio_manager->getRecordingBuffer(rec_len);
@@ -983,6 +1099,7 @@ extern "C" void app_main(void)
                             
                             // 切换到等待响应状态
                             current_state = STATE_WAITING_RESPONSE;
+                            response_wait_start = xTaskGetTickCount();
                             audio_manager->resetResponsePlayedFlag(); // 重置播放标志
                             ESP_LOGI(TAG, "等待服务器响应音频...");
                         }
@@ -1019,6 +1136,12 @@ extern "C" void app_main(void)
                 audio_manager->stopRecording();
                 is_realtime_streaming = false;  // 停止实时流式传输
 
+                // 刷新发送缓冲区中的剩余音频
+                if (stream_send_buf_pos > 0 && websocket_client != nullptr && websocket_client->isConnected()) {
+                    websocket_client->sendBinary(stream_send_buf, stream_send_buf_pos);
+                    stream_send_buf_pos = 0;
+                }
+
                 // 发送录音结束事件
                 if (websocket_client != nullptr && websocket_client->isConnected())
                 {
@@ -1029,6 +1152,7 @@ extern "C" void app_main(void)
 
                 // 切换到等待响应状态
                 current_state = STATE_WAITING_RESPONSE;
+                response_wait_start = xTaskGetTickCount();
                 audio_manager->resetResponsePlayedFlag(); // 重置播放标志
                 ESP_LOGI(TAG, "等待服务器响应音频...");
             }
@@ -1071,7 +1195,7 @@ extern "C" void app_main(void)
                     const char* start_msg = "{\"event\":\"recording_started\"}";
                     websocket_client->sendText(start_msg);
                 }
-                
+
                 current_state = STATE_RECORDING;
                 audio_manager->clearRecordingBuffer();
                 audio_manager->startRecording();
@@ -1087,7 +1211,21 @@ extern "C" void app_main(void)
                 // 重置命令词识别缓冲区
                 multinet->clean(mn_model_data);
                 ESP_LOGI(TAG, "进入连续对话模式，请在%d秒内继续说话...", RECORDING_TIMEOUT_MS / 1000);
-                ESP_LOGI(TAG, "💡 提示：1) 可以继续提问 2) 说“帮我开/关灯” 3) 说“拜拜”结束");
+                ESP_LOGI(TAG, "💡 提示：1) 可以继续提问 2) 说\"帮我开/关灯\" 3) 说\"拜拜\"结束");
+            }
+            else
+            {
+                // ⏱️ 超时保护：防止收不到ping包导致永远卡在等待状态
+                TickType_t now = xTaskGetTickCount();
+                if (response_wait_start > 0 && (now - response_wait_start) > pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS))
+                {
+                    ESP_LOGW(TAG, "⏰ 等待AI响应超时(%d秒)，强制结束流式播放", RESPONSE_TIMEOUT_MS / 1000);
+                    // 如果还在流式播放中，强制结束
+                    if (audio_manager->isStreamingActive()) {
+                        audio_manager->finishStreamingPlayback();
+                    }
+                    audio_manager->setStreamingComplete();
+                }
             }
         }
 
