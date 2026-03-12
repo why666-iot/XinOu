@@ -1,38 +1,226 @@
-# 🎤 ESP32-S3 智能语音助手 - 复刻小智 AI 语音功能
+# 心偶 · 嵌入式端文档
 
-> **完整复刻小智 AI 的语音交互体验** | 支持语音唤醒、命令识别和音频反馈
+> 本文档面向 AI / 软件方向队友，帮助快速理解嵌入式侧的工作原理、数据流和对接协议。
 
-**视频教程预告**：我会在 B 站发布详细教程视频《ESP32 复刻小智 AI 语音功能》
+---
 
-## 🌟 本示例代码主要做了什么？
+## 硬件平台
 
-这是一个完整的智能语音助手实现，复刻了小智 AI 的核心语音功能。当你说"你好小智"时，它会播放欢迎音频并进入命令模式。然后你可以说"帮我开灯"、"帮我关灯"等指令，系统会执行相应操作并播放确认音频。
+**ESP32-S3 N8R8**（8MB Flash + 8MB PSRAM）
 
-**为什么做这个？**  
-很多朋友对小智 AI 的语音交互功能很感兴趣，但不知道如何实现。这个项目展示了完整的语音助手实现方案，包括唤醒、识别、反馈的全流程，让你可以打造属于自己的智能语音助手。
+| 外设 | 型号 | 作用 |
+|------|------|------|
+| 麦克风 | INMP441（I2S） | 采集用户语音，16kHz 单声道 |
+| 功放+喇叭 | MAX98357A（I2S） | 播放 AI 语音回复 |
+| 加速度计 | LIS3DH（I2C） | 检测玩偶晃动/交互动作（预留） |
+| LED | 单色 LED | 状态指示（GPIO21） |
+| 电源 | TP4056 + TPS63020 | 锂电池充放电 + 升降压稳压 |
 
-## ⚡ 功能特性
+---
 
-- ✅ **语音唤醒检测** - 支持"你好小智"唤醒词
-- ✅ **命令词识别** - 支持"帮我开灯"、"帮我关灯"、"拜拜"等指令
-- ✅ **音频反馈播放** - 每个操作都有对应的语音确认
-- ✅ **LED 灯控制** - 根据语音指令控制外接 LED
-- ✅ **智能超时管理** - 5 秒无指令自动退出，支持连续指令
-- ✅ **完全兼容**小智 AI 的硬件接线方式
+## 系统架构
 
-## 📦 需要准备什么？
+### 状态机（核心逻辑在 `main/main.cc`）
 
-### 硬件清单（淘宝都能买到）
+```
+      上电
+        │
+        ▼
+┌─────────────────────┐
+│  STATE_WAITING_WAKEUP│  ← 持续运行 WakeNet，等待唤醒词"你好小智"
+└─────────┬───────────┘
+          │ 检测到唤醒词
+          ▼
+┌─────────────────────┐
+│   STATE_RECORDING   │  ← 同时做三件事：
+│                     │    1. VAD 检测说话状态
+│                     │    2. 实时将音频块流式发送给服务器（WebSocket）
+│                     │    3. MultiNet 本地检测命令词
+└─────────┬───────────┘
+          │ VAD 检测到说话结束（或命令词触发）
+          ▼
+┌─────────────────────┐
+│ STATE_WAITING_RESP  │  ← 等待服务器通过 WebSocket 推回音频流
+│                     │    收到 PING 包 → 音频流结束，循环回录音
+└─────────────────────┘
+          │ AI 回复播放完毕（连续对话模式）
+          └──────────────────────► STATE_RECORDING（下一轮）
+```
 
-| 部件   | 推荐型号           | 备注                       |
-| ------ | ------------------ | -------------------------- |
-| 开发板 | ESP32-S3-DevKitC-1 | 必须是 S3 版本，需要 PSRAM |
-| 麦克风 | INMP441            | 约 5 元/个                 |
-| 功放   | MAX98357A          | 约 8 元/个                 |
-| 喇叭   | 4Ω 3W 小喇叭       | 约 3 元/个                 |
-| LED 灯 | 任意颜色           | 普通发光二极管即可         |
+### 启动流程（含规划中的 BLE 配网）
 
-### 接线图（完全按照小智 AI 的接线方式）
+```
+上电
+ │
+ ├─ 读取 NVS 中的 WiFi 凭据          ← [规划中] 当前为硬编码
+ │
+ ├─ 有凭据 ──► 尝试连接 WiFi（最多重试 3 次）
+ │                 │
+ │                 ├─ 成功 ──► 进入语音助手主循环（状态机）
+ │                 │
+ │                 └─ 失败 ──► 自动进入重配网模式（BLE 广播）[规划中]
+ │
+ └─ 无凭据 ──► 启动 BLE 广播，等待小程序配网  [规划中]
+                   │
+              收到 SSID + 密码 + 服务器地址
+                   │
+              写入 NVS → 重启 → 重走流程
+```
+
+> **当前状态**：WiFi 凭据硬编码在 `main/main.cc`，每次换网络需重新编译烧录。BLE 配网为规划中功能（v0.2.0）。
+
+### 音频数据流
+
+```
+INMP441(I2S)
+    │  16kHz, 16bit, 单声道 PCM
+    ▼
+bsp_get_feed_data()
+    │
+    ├──► WakeNet.detect()         [STATE_WAITING_WAKEUP]
+    │
+    ├──► vad_process()            [STATE_RECORDING]
+    ├──► MultiNet.detect()        [STATE_RECORDING] → 本地命令词
+    └──► WebSocketClient.sendBinary() → 服务器       → AI 对话
+
+服务器 ──► WebSocket DATA_BINARY ──► AudioManager.addStreamingAudioChunk()
+服务器 ──► WebSocket PING        ──► AudioManager.finishStreamingPlayback()
+                                              │
+                                         MAX98357A(I2S) → 喇叭
+```
+
+---
+
+## 项目结构
+
+```
+speech_commands_recognition_with_llm/
+│
+├── main/                          # ESP32 固件源码（ESP-IDF / C++）
+│   ├── main.cc                    # ★ 核心：状态机、语音识别调度、WiFi 连接
+│   │
+│   ├── audio_manager.cc/.h        # ★ 音频管理器
+│   │                              #   - 录音缓冲区（最长 10 秒）
+│   │                              #   - 64KB 环形缓冲区：流式接收服务器音频并边收边播
+│   │                              #   - addStreamingAudioChunk() / finishStreamingPlayback()
+│   │
+│   ├── websocket_client.cc/.h     # WebSocket 客户端封装
+│   │                              #   - 发送：文本 JSON 事件 + 二进制音频块
+│   │                              #   - 自动重连任务
+│   │                              #   - 事件回调（接收服务器推送）
+│   │
+│   ├── bsp_board.cc/.h            # 硬件抽象层（BSP）
+│   │                              #   - I2S 初始化（INMP441 麦克风 / MAX98357A 功放）
+│   │                              #   - bsp_get_feed_data()：读取麦克风 PCM
+│   │                              #   - bsp_play_audio_stream()：流式写入播放 I2S
+│   │
+│   ├── wifi_manager.cc/.h         # WiFi STA 模式连接（带重试 + 事件组同步）
+│   │
+│   ├── mock_voices/               # 本地提示音（PCM 数组，由 .mp3 转换而来）
+│   │   ├── hi.h                   #   唤醒成功提示音
+│   │   ├── ok.h                   #   命令执行确认音
+│   │   ├── bye.h                  #   再见音
+│   │   └── custom.h               #   自定义音（可替换）
+│   │
+│   └── idf_component.yml          # 组件依赖声明
+│                                  #   espressif/esp-sr ^2.1.0（WakeNet/MultiNet/VAD）
+│                                  #   espressif/esp_websocket_client 1.4.0
+│
+└── server/                        # 服务器端（Python，运行在 PC / 云服务器）
+    ├── server.py                  # ★ 核心：WebSocket 服务，桥接 ESP32 ↔ DashScope
+    ├── omni_realtime_client.py    # DashScope qwen-omni-turbo-realtime API 封装
+    ├── system_prompt.md           # AI 角色设定（可直接编辑定义"心偶"人格）
+    └── requirements.txt           # Python 依赖
+```
+
+**规划中（v0.2.0）：**
+
+```
+main/
+├── ble_provisioning.cc/.h   # BLE GATT 配网服务（NimBLE 栈）
+│                            #   - 广播设备名，等待小程序连接
+│                            #   - 暴露 3 个可写 Characteristic：SSID / Password / WS_URI
+│                            #   - 写入完成后触发 NVS 存储 + 重启
+└── nvs_config.cc/.h         # NVS 持久化配置读写
+                             #   - 存储：WiFi 凭据、服务器地址
+                             #   - 替代当前 main.cc 中的硬编码宏定义
+```
+
+---
+
+## ESP32 与服务器的通信协议
+
+### ESP32 → 服务器
+
+| 内容 | 格式 | 触发时机 |
+|------|------|----------|
+| 音频数据 | WebSocket 二进制帧，16kHz 16bit PCM | STATE_RECORDING 期间，实时流式发送 |
+| `{"event":"recording_done"}` | JSON 文本帧 | VAD 检测到说话停止 |
+| `{"event":"recording_cancelled"}` | JSON 文本帧 | ESP32 本地命令词命中，取消本次 AI 对话 |
+
+### 服务器 → ESP32
+
+| 内容 | 格式 | 含义 |
+|------|------|------|
+| 音频数据 | WebSocket 二进制帧，16kHz 16bit PCM | AI 语音回复，流式推送 |
+| WebSocket PING 帧 | 标准 PING | 音频流发送完毕的信号 |
+
+---
+
+## 本地命令词（MultiNet7，离线识别）
+
+以下命令词在**无需联网**的情况下本地识别，命中后不发起 AI 对话：
+
+| 命令词 | ID | 触发动作 |
+|--------|-----|----------|
+| 帮我关灯 | 308 | 关闭 LED（GPIO21） |
+| 帮我开灯 | 309 | 点亮 LED（GPIO21） |
+| 拜拜 | 314 | 播放再见音，返回等待唤醒 |
+| 自定义 | 315 | 可替换为其他命令 |
+
+命令词识别**与录音同步进行**（说话过程中实时检测），说话结束前命中即可触发。
+
+---
+
+## 编译与烧录
+
+```bash
+# 1. 首次配置（选择唤醒词和命令词模型）
+idf.py menuconfig
+# ESP Speech Recognition → Load Multiple Wake Words → WN9_NIHAOXIAOZHI_TTS
+# ESP Speech Recognition → 中文命令词识别 → MULTINET7_QUANT
+
+# 2. 编译
+idf.py build
+
+# 3. 烧录并查看日志
+idf.py flash monitor
+```
+
+烧录前需在 [main/main.cc](main/main.cc) 修改以下硬编码常量：
+
+```cpp
+#define WIFI_SSID   "你的WiFi名"
+#define WIFI_PASS   "你的WiFi密码"
+#define WS_URI      "ws://服务器IP:8888"
+```
+
+> **注意**：BLE 配网功能实现后（v0.2.0），以上硬编码将被移除，改为通过微信小程序动态配置。
+
+---
+
+## 版本路线图
+
+| 版本 | 状态 | 主要内容 |
+|------|------|----------|
+| v0.1.0 | ✅ 当前 | 基础语音助手：唤醒词 + 连续对话 + 本地命令词，WiFi 硬编码，本地服务器 |
+| v0.2.0 | 规划中 | BLE 配网：NVS 存储凭据，微信小程序扫码配网，支持换网络重配 |
+| v0.3.0 | 规划中 | 云端服务器部署，小程序完整配网 UI，产品化独立运行 |
+| v1.0.0 | 规划中 | 完整产品：扫码→配网→对话，长期记忆，情感陪伴人格 |
+
+---
+
+## 接线图
 
 ```text
 麦克风(INMP441) → ESP32开发板
@@ -85,235 +273,4 @@ OUT- → TPS63020的GND
 TPS63020模块
 GND //接地
 OUT //电源正极
-```
-
-> 💡 接线提示：严格按照上述接线，这是经过验证的小智 AI 标准接线方式
-
-## 🚀 3 分钟快速上手
-
-### 方法 1：电脑已安装 ESP-IDF（推荐）
-
-```bash
-# 步骤1：配置项目
-idf.py menuconfig
-
-# 在蓝色菜单中进行以下配置：
-# ① ESP Speech Recognition → Load Multiple Wake Words
-#    选择 "CONFIG_SR_WN_WN9_NIHAOXIAOZHI_TTS" (你好小智)
-# ② ESP Speech Recognition → 中文命令词识别
-#    选择 "CONFIG_SR_MN_CN_MULTINET7_QUANT" (MultiNet7)
-# ③ 按S保存，按Q退出
-
-# 步骤2：编译代码（约2-3分钟）
-idf.py build
-
-# 步骤3：连接开发板到电脑USB口
-idf.py flash      # 自动烧录程序
-
-# 步骤4：查看运行状态
-idf.py monitor    # 看到"等待唤醒词"就成功啦！
-```
-
-### 方法 2：使用预编译固件（快速体验）
-
-> 为了方便大家快速体验，我已经编译好了固件
-
-1. 访问 **ESP 官方烧录工具** → [https://espressif.github.io/esp-launchpad/](https://espressif.github.io/esp-launchpad/)
-2. 连接开发板到电脑 USB 口
-3. 点击网页上的"DIY"按钮
-4. 点击"Connect"，选择你的开发板
-5. 在"DIY"页面将"Flash"改成 0
-6. 上传本项目 release 目录下的 `speech_commands_recognition.bin` 文件
-7. 点击"Program"开始烧录
-8. 烧录完成后点击"Reset"重启开发板
-
-## 🎯 使用方法
-
-### 基本语音交互流程
-
-1. **唤醒阶段**：对着麦克风说"你好小智"
-
-   - 系统检测到唤醒词后播放欢迎音频
-   - 自动进入命令识别模式（5 秒倒计时）
-
-2. **命令阶段**：在 5 秒内说出以下指令之一
-
-   - "帮我开灯" → LED 灯点亮 + 播放确认音频
-   - "帮我关灯" → LED 灯熄灭 + 播放确认音频
-   - "拜拜" → 播放再见音频 + 返回等待唤醒状态
-
-3. **连续指令**：执行完一个指令后，可以继续说其他指令
-   - 每次执行指令后重新开始 5 秒倒计时
-   - 5 秒内无指令则自动播放再见音频并退出
-
-### 系统状态指示
-
-- **等待唤醒**：串口显示"等待唤醒词 '你好小智'"
-- **命令模式**：串口显示"进入命令词识别模式"
-- **指令执行**：串口显示具体的指令执行情况
-- **自动退出**：串口显示"命令词等待超时"
-
-## ⚙️ 自定义配置
-
-### 更换 LED 控制引脚
-
-打开 `main/main.cc` 文件，修改第 44 行：
-
-```c
-// 原代码：接在GPIO21
-#define LED_GPIO GPIO_NUM_21  // ← 把21改成你想要的引脚号
-```
-
-### 调整命令超时时间
-
-修改 `main/main.cc` 第 62 行：
-
-```c
-static const TickType_t COMMAND_TIMEOUT_MS = 5000; // 改成你想要的毫秒数
-```
-
-### 更换唤醒词
-
-```bash
-idf.py menuconfig
-```
-
-→ `ESP Speech Recognition` → `Load Multiple Wake Words`  
-→ 选择你喜欢的唤醒词（如"小爱同学"、"嗨乐鑫"等）  
-→ 按 S 保存，按 Q 退出，重新编译烧录
-
-### 调整检测灵敏度
-
-修改 `main/main.cc` 第 245 行：
-
-```c
-model_iface_data_t *model_data = wakenet->create(model_name, DET_MODE_90);
-//  DET_MODE_90 - 推荐值（平衡型）
-//  DET_MODE_95 - 最严格（减少误触发）
-//  DET_MODE_80 - 最宽松（提高检测率）
-```
-
-## ❓ 新手常见问题
-
-### Q1：没有声音输出？
-
-1. 检查 MAX98357A 接线是否正确
-2. 确认喇叭连接到功放的+/-端子
-3. 检查 3.3V 供电是否稳定
-4. 用万用表测试功放 VIN 端是否有 3.3V 电压
-
-### Q2：语音识别不准确？
-
-1. 确保在安静环境下测试
-2. 距离麦克风 20-50 厘米清晰发音
-3. 检查 INMP441 接线，特别是 SD 数据线
-4. 降低检测灵敏度（DET_MODE_90→DET_MODE_80）
-
-### Q3：LED 灯不亮？
-
-1. 检查 LED 正负极（长脚接 GPIO，短脚接 GND）
-2. 确认 GPIO21 引脚配置正确
-3. 用万用表测试 GPIO21 是否有电压变化
-4. 尝试换一个 LED 灯测试
-
-### Q4：系统重启或死机？
-
-1. 检查开发板是否为 ESP32-S3 且带 PSRAM
-2. 确认 USB 供电充足（建议用电脑 USB 3.0 口）
-3. 查看串口日志中的错误信息
-4. 检查内存使用情况
-
-## 📚 技术原理（进阶学习）
-
-### 使用的 AI 模型
-
-- **WakeNet9**：第 9 代唤醒词检测模型，支持多种唤醒词
-- **MultiNet7**：第 7 代中文命令词识别模型，识别准确率高
-
-### 音频处理流程
-
-1. **音频采集**：INMP441 以 16kHz 采样率采集音频
-2. **预处理**：WebRTC 降噪、VAD 语音活动检测
-3. **特征提取**：提取音频的 MFCC 特征
-4. **模型推理**：AI 模型进行语音识别
-5. **后处理**：置信度判断、结果输出
-
-### 内存管理策略
-
-- **PSRAM 存储**：语音模型加载到外部 PSRAM
-- **内部 RAM**：音频缓冲区使用内部 RAM 确保实时性
-- **动态分配**：根据模型需求动态分配内存
-
-## 🎁 项目结构
-
-```text
-main/
-├── main.cc              # 主程序（核心逻辑）
-├── bsp_board.cc         # 硬件抽象层（麦克风/功放控制）
-├── bsp_board.h          # 硬件接口定义
-└── mock_voices/         # 音频文件目录
-    ├── welcome.h        # 欢迎音频
-    ├── light_on.h       # 开灯确认音频
-    ├── light_off.h      # 关灯确认音频
-    └── byebye.h         # 再见音频
-```
-
-## 📜 开源协议
-
-Apache 2.0 - 可自由用于个人/商业项目，**注明原作者即可**
-
-**🎥 完整视频教程将在 B 站发布**  
-**觉得项目有帮助？给个 Star✨ 就是最大鼓励！**  
-**遇到问题？可以在 B 站视频中评论或者私信我，我看到都会回复**
-
-## main.cc 流程图
-
-```mermaid
-flowchart TD
-    A[系统启动] --> B[初始化外接LED GPIO21]
-    B --> C[初始化INMP441数字麦克风]
-    C --> D[初始化MAX98357A音频功放]
-    D --> E[加载唤醒词模型]
-    E --> F[加载命令词模型<br/>MultiNet7中文识别]
-    F --> G[创建命令词模型数据]
-    G --> H[配置自定义命令词<br/>开灯/关灯/拜拜/自定义]
-    H --> I[分配音频缓冲区内存]
-    I --> K[系统初始化完成<br/>进入主循环]
-```
-
-## 命令词逻辑
-
-```mermaid
-flowchart TD
-    A[系统系统] --> L[唤醒词检测]
-    L --> M{检测到唤醒词<br/>你好小智?}
-    M -->|是| N[播放欢迎音频]
-    N --> O[切换到命令词识别状态<br/>STATE_WAITING_COMMAND]
-    O --> P[启动5秒超时计时器]
-
-    P --> AA[从麦克风获取音频数据]
-    AA --> DD[命令词识别]
-    DD --> EE{识别结果}
-
-    EE -->|ESP_MN_STATE_DETECTED<br/>检测到命令| FF[获取命令ID和置信度]
-    FF --> GG{命令类型判断}
-
-    GG -->|COMMAND_TURN_ON_LIGHT<br/>309 帮我开灯| HH[执行开灯<br/>GPIO21设为高电平]
-    HH --> II[播放开灯确认音频<br/>light_on.h]
-    II --> JJ[重置5秒计时器<br/>继续等待命令]
-
-    GG -->|COMMAND_TURN_OFF_LIGHT<br/>308 帮我关灯| KK[执行关灯<br/>GPIO21设为低电平]
-    KK --> LL[播放关灯确认音频<br/>light_off.h]
-    LL --> JJ
-
-    GG -->|COMMAND_BYE_BYE<br/>314 拜拜| OO[播放再见音频<br/>byebye.h]
-    OO --> PP[返回等待唤醒状态<br/>STATE_WAITING_WAKEUP]
-    PP --> L
-
-    EE -->|ESP_MN_STATE_TIMEOUT<br/>识别超时| RR[执行退出逻辑<br/>播放再见音频]
-    RR --> PP
-
-    EE -->|其他状态| SS{检查手动超时<br/>5秒计时器}
-    SS -->|超时| RR
-    SS -->|未超时| AA
 ```

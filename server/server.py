@@ -298,19 +298,17 @@ class WebSocketAudioServer:
                         # 2. 触发大模型生成响应
                         # 3. 流式发送响应音频给ESP32
 
-                        # 保存音频
+                        # 保存音频（后台并行，不阻塞响应触发）
                         if len(client_state["audio_buffer"]) > 0:
                             print(
                                 f"📊 [{client_ip}] 音频总大小: {len(client_state['audio_buffer'])} 字节 ({len(client_state['audio_buffer'])/2/SAMPLE_RATE:.2f}秒)"
                             )
-
-                            # 保存音频
                             current_timestamp = datetime.now()
-                            saved_file = await self.save_audio(
-                                [bytes(client_state["audio_buffer"])], current_timestamp
+                            asyncio.create_task(
+                                self.save_audio(
+                                    [bytes(client_state["audio_buffer"])], current_timestamp
+                                )
                             )
-                            if saved_file:
-                                print(f"✅ [{client_ip}] 音频已保存: {saved_file}")
 
                         # 🤖 触发LLM响应生成
                         if self.use_model and client_state["realtime_client"]:
@@ -319,30 +317,18 @@ class WebSocketAudioServer:
                                 # 因为我们使用MANUAL模式，需要明确告诉大模型开始生成响应
                                 await client_state["realtime_client"].create_response()
 
-                                # ⏳ 等待响应完成（最多30秒）
+                                # ⏳ 等待 response.done 事件（DashScope 响应完成时触发）
                                 print(f"🤖 [{client_ip}] 等待模型生成响应...")
-                                max_wait_time = 30  # 超时保护，避免无限等待
-                                start_time = time.time()
-
-                                # 💡 等待策略说明：
-                                # - 每100ms检查一次状态
-                                # - 如果2秒内没有新音频，认为响应结束
-                                # - 最多等待30秒避免超时
-
-                                while time.time() - start_time < max_wait_time:
-                                    await asyncio.sleep(0.1)
-
-                                    # 如果超过2秒没有新的音频数据发送，认为响应结束
-                                    if (
-                                        client_state["audio_tracker"]["total_sent"] > 0
-                                        and time.time()
-                                        - client_state["audio_tracker"]["last_time"]
-                                        > 2.0
-                                    ):
-                                        print(
-                                            f"✅ [{client_ip}] 响应音频发送完成，总计: {client_state['audio_tracker']['total_sent']} 字节"
-                                        )
-                                        break
+                                try:
+                                    await asyncio.wait_for(
+                                        client_state["realtime_client"].response_done_event.wait(),
+                                        timeout=30.0
+                                    )
+                                    print(
+                                        f"✅ [{client_ip}] 响应音频发送完成，总计: {client_state['audio_tracker']['total_sent']} 字节"
+                                    )
+                                except asyncio.TimeoutError:
+                                    print(f"⚠️ [{client_ip}] 等待响应超时(30秒)")
 
                                 # 如果没有收到任何音频响应，只打印警告
                                 if client_state["audio_tracker"]["total_sent"] == 0:

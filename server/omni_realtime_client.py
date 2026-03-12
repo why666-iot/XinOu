@@ -69,6 +69,9 @@ class OmniRealtimeClient:
         self._response_text_buffer = ""
         self._input_text_buffer = ""
 
+        # 响应完成事件（response.done 时 set，供 server.py 等待）
+        self.response_done_event = asyncio.Event()
+
     def _load_system_prompt(self) -> str:
         """Load system prompt from file, use cache if already loaded."""
         if self._system_prompt is not None:
@@ -231,13 +234,14 @@ class OmniRealtimeClient:
                     self._is_responding = False
                     self._current_response_id = None
                     self._current_item_id = None
-                    
+
                     # 输出完整的响应文本
                     if self._response_text_buffer:
                         print(f"\n💬 AI响应: {self._response_text_buffer}\n")
                         self._response_text_buffer = ""
-                    
+
                     print("✅ 响应生成完成")
+                    self.response_done_event.set()  # 通知 server.py 响应已完成
                 # Handle interruptions
                 elif event_type == "input_audio_buffer.speech_started":
                     if self.enable_verbose_logging:

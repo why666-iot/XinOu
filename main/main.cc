@@ -142,7 +142,7 @@ static AudioManager* audio_manager = nullptr;
 // VAD（语音活动检测）相关变量
 static bool vad_speech_detected = false;
 static int vad_silence_frames = 0;
-static const int VAD_SILENCE_FRAMES_REQUIRED = 20; // VAD检测到静音的帧数阈值（约600ms）
+static const int VAD_SILENCE_FRAMES_REQUIRED = 13; // VAD检测到静音的帧数阈值（约400ms）
 
 // 💬 连续对话功能相关变量
 // 连续对话模式：第一次对话后，不需要再说唤醒词就能继续对话
