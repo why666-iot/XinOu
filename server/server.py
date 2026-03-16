@@ -311,6 +311,40 @@ class WebSocketAudioServer:
                             )
 
                         # 🤖 触发LLM响应生成
+                        # 如果 realtime_client 为 None（ESP32断开重连导致），尝试补建连接
+                        if self.use_model and not client_state["realtime_client"]:
+                            print(f"🔄 [{client_ip}] LLM连接丢失，尝试重新建立...")
+                            try:
+                                client_state["realtime_client"] = OmniRealtimeClient(
+                                    base_url="wss://dashscope.aliyuncs.com/api-ws/v1/realtime",
+                                    api_key=self.api_key,
+                                    model="qwen-omni-turbo-realtime-2025-05-08",
+                                    voice="Chelsie",
+                                    on_audio_delta=lambda audio: asyncio.create_task(
+                                        self.on_audio_delta_handler(
+                                            websocket,
+                                            client_ip,
+                                            audio,
+                                            client_state["audio_tracker"],
+                                        )
+                                    ),
+                                    turn_detection_mode=TurnDetectionMode.MANUAL,
+                                )
+                                await client_state["realtime_client"].connect()
+                                client_state["message_task"] = asyncio.create_task(
+                                    client_state["realtime_client"].handle_messages()
+                                )
+                                # 补发已缓存的音频数据
+                                if len(client_state["audio_buffer"]) > 0:
+                                    await client_state["realtime_client"].send_audio(
+                                        bytes(client_state["audio_buffer"])
+                                    )
+                                    print(f"📤 [{client_ip}] 补发 {len(client_state['audio_buffer'])} 字节音频到LLM")
+                                print(f"✅ [{client_ip}] LLM连接重建成功")
+                            except Exception as e:
+                                print(f"❌ [{client_ip}] LLM连接重建失败: {e}")
+                                client_state["realtime_client"] = None
+
                         if self.use_model and client_state["realtime_client"]:
                             try:
                                 # 📌 手动触发响应生成
@@ -333,6 +367,14 @@ class WebSocketAudioServer:
                                 # 如果没有收到任何音频响应，只打印警告
                                 if client_state["audio_tracker"]["total_sent"] == 0:
                                     print(f"⚠️ [{client_ip}] 未收到大模型响应")
+
+                                # ⏳ 等待所有异步音频发送任务完成
+                                # on_audio_delta 使用 asyncio.create_task() 异步发送音频块，
+                                # response.done 触发时这些任务可能还在事件循环队列中未执行。
+                                # 如果立即发 PING，ESP32 会提前结束播放，丢失后半段音频。
+                                # 多次 yield 给事件循环，确保所有排队的发送任务都执行完毕。
+                                for _ in range(5):
+                                    await asyncio.sleep(0.05)
 
                                 # 发送ping作为音频结束标志
                                 await websocket.ping()

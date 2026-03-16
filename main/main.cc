@@ -80,7 +80,7 @@ static const char *TAG = "语音识别"; // 日志标签
 #define WIFI_PASS "why666666"           // 您的WiFi密码
 
 // 🌐 WebSocket服务器配置
-#define WS_URI "ws://10.189.189.53:8888" // 请改为您的电脑IP地址:8888
+#define WS_URI "ws://10.225.67.53:8888" // 请改为您的电脑IP地址:8888
 
 // WiFi和WebSocket管理器
 static WiFiManager* wifi_manager = nullptr;
@@ -1073,6 +1073,75 @@ extern "C" void app_main(void)
                     
                     // 如果静音超过600ms，认为用户说完了
                     if (vad_silence_frames >= VAD_SILENCE_FRAMES_REQUIRED) {
+                        // 🎯 在结束录音前，给 MultiNet 最后一次检测机会
+                        // MultiNet 需要积累多帧才能输出结果，VAD 结束时可能刚好有结果
+                        if (user_started_speaking)
+                        {
+                            vTaskDelay(pdMS_TO_TICKS(1));
+                            esp_mn_state_t mn_state = multinet->detect(mn_model_data, processed_audio);
+                            if (mn_state == ESP_MN_STATE_DETECTED)
+                            {
+                                esp_mn_results_t *mn_result = multinet->get_results(mn_model_data);
+                                if (mn_result->num > 0)
+                                {
+                                    int command_id = mn_result->command_id[0];
+                                    float prob = mn_result->prob[0];
+                                    const char *cmd_desc = get_command_description(command_id);
+
+                                    ESP_LOGI(TAG, "🎯 VAD结束时检测到命令词: ID=%d, 置信度=%.2f, 内容=%s, 命令='%s'",
+                                             command_id, prob, mn_result->string, cmd_desc);
+
+                                    // 停止录音和实时传输
+                                    audio_manager->stopRecording();
+                                    is_realtime_streaming = false;
+                                    stream_send_buf_pos = 0;
+
+                                    if (websocket_client != nullptr && websocket_client->isConnected()) {
+                                        websocket_client->sendText("{\"event\":\"recording_cancelled\"}");
+                                    }
+
+                                    is_continuous_conversation = true;
+
+                                    if (command_id == COMMAND_TURN_ON_LIGHT)
+                                    {
+                                        ESP_LOGI(TAG, "💡 执行开灯命令");
+                                        led_turn_on();
+                                        play_audio_with_stop(ok, ok_len, "开灯确认音频");
+                                    }
+                                    else if (command_id == COMMAND_TURN_OFF_LIGHT)
+                                    {
+                                        ESP_LOGI(TAG, "💡 执行关灯命令");
+                                        led_turn_off();
+                                        play_audio_with_stop(ok, ok_len, "关灯确认音频");
+                                    }
+                                    else if (command_id == COMMAND_BYE_BYE)
+                                    {
+                                        ESP_LOGI(TAG, "👋 检测到拜拜命令，退出对话");
+                                        execute_exit_logic();
+                                        continue;
+                                    }
+                                    else if (command_id == COMMAND_CUSTOM)
+                                    {
+                                        ESP_LOGI(TAG, "🔧 执行自定义命令");
+                                        play_audio_with_stop(custom, custom_len, "自定义确认音频");
+                                    }
+
+                                    // 命令执行完，继续录音
+                                    audio_manager->clearRecordingBuffer();
+                                    audio_manager->startRecording();
+                                    vad_speech_detected = false;
+                                    vad_silence_frames = 0;
+                                    user_started_speaking = false;
+                                    recording_timeout_start = xTaskGetTickCount();
+                                    is_realtime_streaming = false;
+                                    vad_reset_trigger(vad_inst);
+                                    multinet->clean(mn_model_data);
+                                    ESP_LOGI(TAG, "命令执行完成，继续录音...");
+                                    continue;
+                                }
+                            }
+                        }
+
                         ESP_LOGI(TAG, "VAD检测到用户说话结束，录音长度: %.2f 秒",
                                  audio_manager->getRecordingDuration());
                         audio_manager->stopRecording();

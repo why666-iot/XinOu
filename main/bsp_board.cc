@@ -389,11 +389,12 @@ esp_err_t bsp_play_audio(const uint8_t *audio_data, size_t data_len)
         tx_channel_enabled = true;
         ESP_LOGD(TAG, "✅ I2S发送通道已重新启用");
         
-        // 发送一小段静音数据来初始化通道
-        const size_t init_silence_size = 256; // 减小到256字节，避免大量内存分配
-        static uint8_t init_silence[256] = {0}; // 使用静态数组，避免动态分配
+        // 发送一段静音数据来初始化通道，让DMA缓冲区和功放稳定
+        // 256字节(8ms)太短，功放还没稳定就开始播真实音频，导致开头卡顿
+        // 4096字节(128ms)足够让MAX98357A和I2S DMA都进入稳定状态
+        static uint8_t init_silence[4096] = {0};
         size_t silence_written = 0;
-        i2s_channel_write(tx_handle, init_silence, init_silence_size, &silence_written, pdMS_TO_TICKS(10));
+        i2s_channel_write(tx_handle, init_silence, sizeof(init_silence), &silence_written, pdMS_TO_TICKS(200));
     }
 
     // 循环写入音频数据，确保所有数据都被发送
@@ -482,11 +483,12 @@ esp_err_t bsp_play_audio_stream(const uint8_t *audio_data, size_t data_len)
         tx_channel_enabled = true;
         ESP_LOGD(TAG, "✅ I2S发送通道已重新启用");
         
-        // 发送一小段静音数据来初始化通道
-        const size_t init_silence_size = 256; // 减小到256字节，避免大量内存分配
-        static uint8_t init_silence[256] = {0}; // 使用静态数组，避免动态分配
+        // 发送一段静音数据来初始化通道，让DMA缓冲区和功放稳定
+        // 256字节(8ms)太短，功放还没稳定就开始播真实音频，导致开头卡顿
+        // 4096字节(128ms)足够让MAX98357A和I2S DMA都进入稳定状态
+        static uint8_t init_silence[4096] = {0};
         size_t silence_written = 0;
-        i2s_channel_write(tx_handle, init_silence, init_silence_size, &silence_written, pdMS_TO_TICKS(10));
+        i2s_channel_write(tx_handle, init_silence, sizeof(init_silence), &silence_written, pdMS_TO_TICKS(200));
     }
 
     // 循环写入音频数据，确保所有数据都被发送

@@ -1,3 +1,8 @@
+待办：
+1.增加配网功能
+2.ws接口协议（腾讯在线文档）
+3.调试
+
 # 心偶 · 嵌入式端文档
 
 > 本文档面向 AI / 软件方向队友，帮助快速理解嵌入式侧的工作原理、数据流和对接协议。
@@ -40,7 +45,7 @@
           │ VAD 检测到说话结束（或命令词触发）
           ▼
 ┌─────────────────────┐
-│ STATE_WAITING_RESP  │  ← 等待服务器通过 WebSocket 推回音频流
+│ STATE_WAITING_RESPONSE │  ← 等待服务器通过 WebSocket 推回音频流
 │                     │    收到 PING 包 → 音频流结束，循环回录音
 └─────────────────────┘
           │ AI 回复播放完毕（连续对话模式）
@@ -54,7 +59,7 @@
  │
  ├─ 读取 NVS 中的 WiFi 凭据          ← [规划中] 当前为硬编码
  │
- ├─ 有凭据 ──► 尝试连接 WiFi（最多重试 3 次）
+ ├─ 有凭据 ──► 尝试连接 WiFi（最多重试 5 次）
  │                 │
  │                 ├─ 成功 ──► 进入语音助手主循环（状态机）
  │                 │
@@ -154,8 +159,9 @@ main/
 
 | 内容 | 格式 | 触发时机 |
 |------|------|----------|
-| 音频数据 | WebSocket 二进制帧，16kHz 16bit PCM | STATE_RECORDING 期间，实时流式发送 |
-| `{"event":"recording_done"}` | JSON 文本帧 | VAD 检测到说话停止 |
+| `{"event":"recording_started"}` | JSON 文本帧 | 唤醒成功或连续对话回到录音状态时 |
+| 音频数据 | WebSocket 二进制帧，16kHz 16bit PCM | STATE_RECORDING 期间，VAD 检测到说话后实时流式发送 |
+| `{"event":"recording_ended"}` | JSON 文本帧 | VAD 检测到说话停止 |
 | `{"event":"recording_cancelled"}` | JSON 文本帧 | ESP32 本地命令词命中，取消本次 AI 对话 |
 
 ### 服务器 → ESP32
