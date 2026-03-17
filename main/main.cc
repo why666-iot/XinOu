@@ -69,6 +69,8 @@ extern "C"
 #include "audio_manager.h"          // 音频管理器
 #include "wifi_manager.h"           // WiFi管理器
 #include "websocket_client.h"        // WebSocket客户端
+#include "nvs_config.h"             // NVS配置存储
+#include "ble_provisioning.h"       // BLE配网服务
 
 static const char *TAG = "语音识别"; // 日志标签
 
@@ -554,22 +556,41 @@ extern "C" void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    // ② 初始化LED灯（用于状态指示）
+    // ② 从 NVS 加载配置（首次启动会将硬编码默认值写入 NVS）
+    std::string cfg_ssid, cfg_password, cfg_ws_uri;
+    ret = nvs_config_load(WIFI_SSID, WIFI_PASS, WS_URI,
+                          cfg_ssid, cfg_password, cfg_ws_uri);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "NVS 配置加载失败，使用编译期默认值");
+        cfg_ssid = WIFI_SSID;
+        cfg_password = WIFI_PASS;
+        cfg_ws_uri = WS_URI;
+    }
+
+    // ③ 启动 BLE 配网服务（WiFi 之前启动，确保连不上 WiFi 时也能配网）
+    ESP_LOGI(TAG, "启动 BLE 配网服务...");
+    ret = ble_provisioning_start();
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "BLE 配网启动失败: %s（不影响主功能）", esp_err_to_name(ret));
+    }
+
+    // ④ 初始化LED灯（用于状态指示）
     init_led();
 
-    // ③ 连接WiFi网络
+    // ⑤ 连接WiFi网络（使用 NVS 中的凭据）
     ESP_LOGI(TAG, "正在连接WiFi...");
-    wifi_manager = new WiFiManager(WIFI_SSID, WIFI_PASS);
+    wifi_manager = new WiFiManager(cfg_ssid, cfg_password);
     if (wifi_manager->connect() != ESP_OK) {
         ESP_LOGE(TAG, "WiFi连接失败");
         ESP_LOGE(TAG, "请检查：1) WiFi名称和密码是否正确 2) 路由器是否开启");
+        ESP_LOGW(TAG, "BLE 配网服务仍在运行，可通过蓝牙配置新的 WiFi 凭据");
         delete wifi_manager;
         return;
     }
-    
-    // ④ 连接WebSocket服务器（用于与电脑通信）
+
+    // ⑥ 连接WebSocket服务器（使用 NVS 中的地址）
     ESP_LOGI(TAG, "正在连接WebSocket服务器...");
-    websocket_client = new WebSocketClient(WS_URI, true, 5000);
+    websocket_client = new WebSocketClient(cfg_ws_uri, true, 5000);
     websocket_client->setEventCallback(on_websocket_event);  // 设置事件处理函数
     if (websocket_client->connect() != ESP_OK) {
         ESP_LOGE(TAG, "WebSocket连接失败");
@@ -579,7 +600,7 @@ extern "C" void app_main(void)
         return;
     }
 
-    // ⑤ 初始化麦克风（INMP441数字麦克风）
+    // ⑦ 初始化麦克风（INMP441数字麦克风）
     ESP_LOGI(TAG, "正在初始化INMP441数字麦克风...");
     ESP_LOGI(TAG, "音频参数: 16kHz采样率, 单声道, 16位");
 

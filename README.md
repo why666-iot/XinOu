@@ -144,7 +144,7 @@ speech_commands_recognition_with_llm/
 main/
 ├── ble_provisioning.cc/.h   # BLE GATT 配网服务（NimBLE 栈）
 │                            #   - 广播设备名，等待小程序连接
-│                            #   - 暴露 3 个可写 Characteristic：SSID / Password / WS_URI
+│                            #   - 暴露 2 个可写 Characteristic：SSID / Password
 │                            #   - 写入完成后触发 NVS 存储 + 重启
 └── nvs_config.cc/.h         # NVS 持久化配置读写
                              #   - 存储：WiFi 凭据、服务器地址
