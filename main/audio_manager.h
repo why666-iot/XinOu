@@ -38,7 +38,7 @@ public:
      * @param response_duration_sec AI回复最大时长（默认32秒）
      */
     AudioManager(uint32_t sample_rate = 16000,
-                 uint32_t recording_buffer_sec = 4,
+                 uint32_t recording_buffer_sec = 15,
                  uint32_t response_duration_sec = 32);
     
     /**

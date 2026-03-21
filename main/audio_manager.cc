@@ -18,9 +18,9 @@ const char* AudioManager::TAG = "AudioManager";
 
 AudioManager::AudioManager(uint32_t sample_rate, uint32_t recording_buffer_sec, uint32_t response_duration_sec)
     : sample_rate(sample_rate)
-    , recording_buffer_size(sample_rate * recording_buffer_sec)
     , response_duration_sec(response_duration_sec)
     , recording_buffer(nullptr)
+    , recording_buffer_size(sample_rate * recording_buffer_sec)
     , recording_length(0)
     , recording_write_pos(0)
     , recording_wrapped(false)

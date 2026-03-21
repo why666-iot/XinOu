@@ -25,6 +25,7 @@ static ble_prov_wifi_cb_t s_wifi_cb = nullptr;
 static ble_uuid16_t prov_svc_uuid  = BLE_UUID16_INIT(0xFF01);
 static ble_uuid16_t prov_chr_ssid_uuid = BLE_UUID16_INIT(0xFF02);
 static ble_uuid16_t prov_chr_pass_uuid = BLE_UUID16_INIT(0xFF03);
+static ble_uuid16_t user_desc_uuid = BLE_UUID16_INIT(0x2901); // Characteristic User Description
 
 // 前向声明
 static void ble_advertise(void);
@@ -32,6 +33,38 @@ static int ssid_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                           struct ble_gatt_access_ctxt *ctxt, void *arg);
 static int pass_access_cb(uint16_t conn_handle, uint16_t attr_handle,
                           struct ble_gatt_access_ctxt *ctxt, void *arg);
+
+// 用户描述描述符回调（返回 arg 中的字符串）
+static int user_desc_access_cb(uint16_t conn_handle, uint16_t attr_handle,
+                                struct ble_gatt_access_ctxt *ctxt, void *arg)
+{
+    if (ctxt->op == BLE_GATT_ACCESS_OP_READ_DSC) {
+        const char* desc = (const char*)arg;
+        os_mbuf_append(ctxt->om, desc, strlen(desc));
+        return 0;
+    }
+    return BLE_ATT_ERR_UNLIKELY;
+}
+
+// 描述符数组（静态，生命周期与 GATT 服务相同）
+static struct ble_gatt_dsc_def ssid_dscs[] = {
+    {
+        .uuid = &user_desc_uuid.u,
+        .att_flags = BLE_ATT_F_READ,
+        .access_cb = user_desc_access_cb,
+        .arg = (void*)"WiFiConfig SSID",
+    },
+    {0}
+};
+static struct ble_gatt_dsc_def pass_dscs[] = {
+    {
+        .uuid = &user_desc_uuid.u,
+        .att_flags = BLE_ATT_F_READ,
+        .access_cb = user_desc_access_cb,
+        .arg = (void*)"WiFiConfig",
+    },
+    {0}
+};
 
 // GATT 服务定义
 static const struct ble_gatt_svc_def gatt_svcs[] = {
@@ -43,12 +76,14 @@ static const struct ble_gatt_svc_def gatt_svcs[] = {
                 // SSID: 可读可写
                 .uuid = &prov_chr_ssid_uuid.u,
                 .access_cb = ssid_access_cb,
+                .descriptors = ssid_dscs,
                 .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE,
             },
             {
                 // Password: 仅可写（安全考虑，不可回读）
                 .uuid = &prov_chr_pass_uuid.u,
                 .access_cb = pass_access_cb,
+                .descriptors = pass_dscs,
                 .flags = BLE_GATT_CHR_F_WRITE,
             },
             {0}, // 终止符
