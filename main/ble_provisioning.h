@@ -3,12 +3,14 @@
 
 #include "esp_err.h"
 
+// BLE 配网成功回调：收到 SSID + Password 并写入 NVS 后调用
+typedef void (*ble_prov_wifi_cb_t)(const char* ssid, const char* password);
+
 /**
  * 启动 BLE 配网服务
- * 初始化 NimBLE 栈，注册 GATT Service，开始广播
- * 设备名称: "XinOu-XXXX"（XXXX 为 MAC 后 4 位十六进制）
+ * @param wifi_cb 收到新 WiFi 凭据后的回调（可为 NULL）
  */
-esp_err_t ble_provisioning_start(void);
+esp_err_t ble_provisioning_start(ble_prov_wifi_cb_t wifi_cb);
 
 /**
  * 停止 BLE 配网服务

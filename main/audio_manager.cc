@@ -16,13 +16,14 @@ extern "C" {
 
 const char* AudioManager::TAG = "AudioManager";
 
-AudioManager::AudioManager(uint32_t sample_rate, uint32_t recording_duration_sec, uint32_t response_duration_sec)
+AudioManager::AudioManager(uint32_t sample_rate, uint32_t recording_buffer_sec, uint32_t response_duration_sec)
     : sample_rate(sample_rate)
-    , recording_duration_sec(recording_duration_sec)
+    , recording_buffer_size(sample_rate * recording_buffer_sec)
     , response_duration_sec(response_duration_sec)
     , recording_buffer(nullptr)
-    , recording_buffer_size(0)
     , recording_length(0)
+    , recording_write_pos(0)
+    , recording_wrapped(false)
     , is_recording(false)
     , response_buffer(nullptr)
     , response_buffer_size(0)
@@ -34,9 +35,7 @@ AudioManager::AudioManager(uint32_t sample_rate, uint32_t recording_duration_sec
     , streaming_write_pos(0)
     , streaming_read_pos(0)
 {
-    // 🧮 计算所需缓冲区大小
-    recording_buffer_size = sample_rate * recording_duration_sec;  // 录音缓冲区（样本数）
-    response_buffer_size = sample_rate * response_duration_sec * sizeof(int16_t);  // 响应缓冲区（字节数）
+    response_buffer_size = sample_rate * response_duration_sec * sizeof(int16_t);
 }
 
 AudioManager::~AudioManager() {
@@ -53,8 +52,8 @@ esp_err_t AudioManager::init() {
                  recording_buffer_size * sizeof(int16_t));
         return ESP_ERR_NO_MEM;
     }
-    ESP_LOGI(TAG, "✓ 录音缓冲区分配成功，大小: %zu 字节 (%lu 秒)", 
-             recording_buffer_size * sizeof(int16_t), (unsigned long)recording_duration_sec);
+    ESP_LOGI(TAG, "✓ 录音环形缓冲区分配成功，大小: %zu 字节 (%zu 秒)",
+             recording_buffer_size * sizeof(int16_t), recording_buffer_size / sample_rate);
     
     // 分配响应缓冲区
     response_buffer = (int16_t*)calloc(response_buffer_size / sizeof(int16_t), sizeof(int16_t));
@@ -105,12 +104,14 @@ void AudioManager::deinit() {
 void AudioManager::startRecording() {
     is_recording = true;
     recording_length = 0;
+    recording_write_pos = 0;
+    recording_wrapped = false;
     ESP_LOGI(TAG, "开始录音...");
 }
 
 void AudioManager::stopRecording() {
     is_recording = false;
-    ESP_LOGI(TAG, "停止录音，当前长度: %zu 样本 (%.2f 秒)", 
+    ESP_LOGI(TAG, "停止录音，当前长度: %zu 样本 (%.2f 秒)",
              recording_length, getRecordingDuration());
 }
 
@@ -118,35 +119,53 @@ bool AudioManager::addRecordingData(const int16_t* data, size_t samples) {
     if (!is_recording || recording_buffer == nullptr) {
         return false;
     }
-    
-    // 📏 检查缓冲区是否还有空间
-    if (recording_length + samples > recording_buffer_size) {
-        ESP_LOGW(TAG, "录音缓冲区已满（超过10秒上限）");
-        return false;
+
+    for (size_t i = 0; i < samples; i++) {
+        recording_buffer[recording_write_pos] = data[i];
+        recording_write_pos++;
+        if (recording_write_pos >= recording_buffer_size) {
+            recording_write_pos = 0;
+            recording_wrapped = true;
+        }
     }
-    
-    // 💾 将新的音频数据追加到缓冲区末尾
-    memcpy(&recording_buffer[recording_length], data, samples * sizeof(int16_t));
-    recording_length += samples;
-    
+
+    // 更新有效数据长度
+    if (recording_wrapped) {
+        recording_length = recording_buffer_size;
+    } else {
+        recording_length = recording_write_pos;
+    }
+
     return true;
 }
 
-const int16_t* AudioManager::getRecordingBuffer(size_t& length) const {
-    length = recording_length;
-    return recording_buffer;
+void AudioManager::exportRecordingData(int16_t* out_buf, size_t& out_samples) const {
+    if (recording_buffer == nullptr || recording_length == 0) {
+        out_samples = 0;
+        return;
+    }
+
+    if (!recording_wrapped) {
+        // 没绕回，直接拷贝 0 ~ write_pos
+        memcpy(out_buf, recording_buffer, recording_write_pos * sizeof(int16_t));
+        out_samples = recording_write_pos;
+    } else {
+        // 绕回了，先拷贝 write_pos ~ end，再拷贝 0 ~ write_pos
+        size_t tail = recording_buffer_size - recording_write_pos;
+        memcpy(out_buf, &recording_buffer[recording_write_pos], tail * sizeof(int16_t));
+        memcpy(&out_buf[tail], recording_buffer, recording_write_pos * sizeof(int16_t));
+        out_samples = recording_buffer_size;
+    }
 }
 
 void AudioManager::clearRecordingBuffer() {
     recording_length = 0;
+    recording_write_pos = 0;
+    recording_wrapped = false;
 }
 
 float AudioManager::getRecordingDuration() const {
     return (float)recording_length / sample_rate;
-}
-
-bool AudioManager::isRecordingBufferFull() const {
-    return recording_length >= recording_buffer_size;
 }
 
 // 🔊 ========== 音频播放功能实现 ==========

@@ -1,4 +1,5 @@
 #include "ble_provisioning.h"
+#include "nvs_config.h"
 #include "esp_log.h"
 #include "esp_mac.h"
 #include "nvs_flash.h"
@@ -18,6 +19,7 @@ static char ssid_buf[33] = {0};
 static char password_buf[65] = {0};
 static bool s_is_running = false;
 static uint8_t own_addr_type;
+static ble_prov_wifi_cb_t s_wifi_cb = nullptr;
 
 // UUID 定义（静态变量，避免 C++ 取临时对象地址的编译错误）
 static ble_uuid16_t prov_svc_uuid  = BLE_UUID16_INIT(0xFF01);
@@ -84,7 +86,26 @@ static int pass_access_cb(uint16_t conn_handle, uint16_t attr_handle,
         memset(password_buf, 0, sizeof(password_buf));
         ble_hs_mbuf_to_flat(ctxt->om, password_buf, len, NULL);
         ESP_LOGI(TAG, "🔑 BLE 收到 Password, 长度: %d", (int)len);
-        // TODO: 产品化后取消注释，调用 nvs_config_save_wifi(ssid_buf, password_buf)
+
+        // SSID 必须先写入，否则忽略
+        if (strlen(ssid_buf) == 0) {
+            ESP_LOGW(TAG, "尚未收到 SSID，忽略本次 Password");
+            return 0;
+        }
+
+        // 写入 NVS 持久化
+        std::string s_ssid(ssid_buf);
+        std::string s_pass(password_buf);
+        esp_err_t err = nvs_config_save_wifi(s_ssid, s_pass);
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "✅ WiFi 凭据已保存到 NVS: SSID=%s", ssid_buf);
+            // 通知 main 用新凭据重连 WiFi
+            if (s_wifi_cb) {
+                s_wifi_cb(ssid_buf, password_buf);
+            }
+        } else {
+            ESP_LOGE(TAG, "NVS 保存失败: %s", esp_err_to_name(err));
+        }
         return 0;
     }
     return BLE_ATT_ERR_UNLIKELY;
@@ -177,12 +198,14 @@ static void nimble_host_task(void *param)
     nimble_port_freertos_deinit();
 }
 
-esp_err_t ble_provisioning_start(void)
+esp_err_t ble_provisioning_start(ble_prov_wifi_cb_t wifi_cb)
 {
     if (s_is_running) {
         ESP_LOGW(TAG, "BLE 配网服务已在运行");
         return ESP_OK;
     }
+
+    s_wifi_cb = wifi_cb;
 
     // 构造设备名: "XinOu-XXXX"
     uint8_t mac[6];

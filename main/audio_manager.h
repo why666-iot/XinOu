@@ -37,8 +37,8 @@ public:
      * @param recording_duration_sec 最大录音时长（默认10秒）
      * @param response_duration_sec AI回复最大时长（默认32秒）
      */
-    AudioManager(uint32_t sample_rate = 16000, 
-                 uint32_t recording_duration_sec = 10,
+    AudioManager(uint32_t sample_rate = 16000,
+                 uint32_t recording_buffer_sec = 4,
                  uint32_t response_duration_sec = 32);
     
     /**
@@ -81,25 +81,21 @@ public:
     bool isRecording() const { return is_recording; }
 
     /**
-     * @brief 添加音频数据到录音缓冲区
-     * 
-     * 每次从麦克风读到数据后，用这个函数保存起来。
-     * 
+     * @brief 添加音频数据到录音环形缓冲区（满了覆盖旧数据）
+     *
      * @param data 音频数据指针
-     * @param samples 样本数量（注意：不是字节数！）
-     * @return true=添加成功，false=缓冲区满了
+     * @param samples 样本数量
+     * @return true=添加成功
      */
     bool addRecordingData(const int16_t* data, size_t samples);
 
     /**
-     * @brief 获取录音数据
-     * 
-     * 用于获取已经录制的全部音频数据。
-     * 
-     * @param[out] length 会被设置为录音的样本数
-     * @return 指向录音数据的指针
+     * @brief 导出录音数据（按时间顺序拷贝到外部缓冲区）
+     *
+     * @param[out] out_buf 外部缓冲区（调用者分配）
+     * @param[out] out_samples 导出的样本数
      */
-    const int16_t* getRecordingBuffer(size_t& length) const;
+    void exportRecordingData(int16_t* out_buf, size_t& out_samples) const;
 
     /**
      * @brief 清空录音缓冲区
@@ -114,11 +110,9 @@ public:
     float getRecordingDuration() const;
 
     /**
-     * @brief 检查录音缓冲区是否已满
-     * 
-     * @return true 已满，false 未满
+     * @brief 获取录音缓冲区中有效数据的样本数
      */
-    bool isRecordingBufferFull() const;
+    size_t getRecordingLength() const { return recording_length; }
 
     // 🔊 ========== 音频播放相关功能 ==========
 
@@ -233,13 +227,14 @@ public:
 private:
     // 🎶 音频参数
     uint32_t sample_rate;               // 采样率（Hz）
-    uint32_t recording_duration_sec;    // 最大录音时长（秒）
     uint32_t response_duration_sec;     // 最大回复时长（秒）
 
-    // 🎙️ 录音相关变量
+    // 🎙️ 录音环形缓冲区相关变量
     int16_t* recording_buffer;          // 录音数据缓冲区
     size_t recording_buffer_size;       // 缓冲区大小（样本数）
-    size_t recording_length;            // 已录制的样本数
+    size_t recording_length;            // 有效数据样本数（未满时 = write_pos）
+    size_t recording_write_pos;         // 环形缓冲区写入位置
+    bool recording_wrapped;             // 缓冲区是否已经绕回过
     bool is_recording;                  // 是否正在录音
 
     // 🔊 响应音频相关变量

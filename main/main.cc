@@ -77,16 +77,25 @@ static const char *TAG = "语音识别"; // 日志标签
 // 🔌 硬件引脚定义
 #define LED_GPIO GPIO_NUM_21 // LED指示灯连接到GPIO21（记得加限流电阻哦）
 
-/// 📡 网络配置（请根据您的实际情况修改）
-#define WIFI_SSID "ubuntu"                 // 您的WiFi名称
-#define WIFI_PASS "why666666"           // 您的WiFi密码
+/// 📡 网络配置 - 首次烧录的默认值（写入 NVS 后以 NVS 为准）
+/// 后续通过 BLE 配网修改，无需重新编译
+#define WIFI_SSID_DEFAULT "ubuntu"
+#define WIFI_PASS_DEFAULT "why666666"
 
-// 🌐 WebSocket服务器配置
-#define WS_URI "ws://10.225.67.53:8888" // 请改为您的电脑IP地址:8888
+// 🌐 WebSocket 服务器配置
+// 调试阶段：改为你电脑的局域网 IP，如 ws://192.168.1.100:8888
+// 对接云端：改为云服务器地址，如 ws://your-server.com:8888
+// 改完重新编译烧录即可，仅首次烧录或 NVS 清除后生效
+#define WS_URI_DEFAULT "ws://10.225.67.53:8888"
 
 // WiFi和WebSocket管理器
 static WiFiManager* wifi_manager = nullptr;
 static WebSocketClient* websocket_client = nullptr;
+
+// BLE 配网信号：收到新 WiFi 凭据时由 BLE 回调设置
+static volatile bool ble_wifi_received = false;
+static char ble_new_ssid[33] = {0};
+static char ble_new_pass[65] = {0};
 
 // 🎮 系统状态机（程序的不同工作阶段）
 typedef enum
@@ -445,11 +454,20 @@ static void handle_ws_resend(void)
 
     needs_ws_resend = false;
 
-    size_t rec_samples = 0;
-    const int16_t *rec_buf = audio_manager->getRecordingBuffer(rec_samples);
+    // 导出环形缓冲区数据（按时间顺序）
+    size_t buf_size = audio_manager->getRecordingBufferSize();
+    int16_t *export_buf = (int16_t *)malloc(buf_size * sizeof(int16_t));
+    if (export_buf == nullptr) {
+        ESP_LOGW(TAG, "重发：分配导出缓冲区失败");
+        return;
+    }
 
-    if (rec_samples == 0 || rec_buf == nullptr) {
+    size_t rec_samples = 0;
+    audio_manager->exportRecordingData(export_buf, rec_samples);
+
+    if (rec_samples == 0) {
         ESP_LOGW(TAG, "重发：录音缓冲区为空，跳过");
+        free(export_buf);
         return;
     }
 
@@ -463,13 +481,14 @@ static void handle_ws_resend(void)
 
     // 分块发送全部录音数据（每块1024字节，给TCP缓冲区留余量）
     const size_t CHUNK = 1024;
-    const uint8_t *ptr = (const uint8_t *)rec_buf;
+    const uint8_t *ptr = (const uint8_t *)export_buf;
     size_t remaining = rec_samples * sizeof(int16_t);
 
     while (remaining > 0) {
         if (!websocket_client->isConnected()) {
             ESP_LOGW(TAG, "重发中途断开，等待下次重连");
             needs_ws_resend = true;  // 下次重连继续重发
+            free(export_buf);
             return;
         }
         size_t to_send = (remaining > CHUNK) ? CHUNK : remaining;
@@ -477,12 +496,15 @@ static void handle_ws_resend(void)
         if (sent < 0) {
             ESP_LOGW(TAG, "重发写入失败，等待下次重连");
             needs_ws_resend = true;
+            free(export_buf);
             return;
         }
         ptr += to_send;
         remaining -= to_send;
         vTaskDelay(pdMS_TO_TICKS(30));  // 给TCP缓冲区和服务器喘息时间
     }
+
+    free(export_buf);
 
     // 发送录音结束事件
     websocket_client->sendText("{\"event\":\"recording_ended\"}", 2000);
@@ -532,11 +554,20 @@ static void execute_exit_logic(void)
     ESP_LOGI(TAG, "返回等待唤醒状态，请说出唤醒词 '你好小智'");
 }
 
+// BLE 配网回调：收到新 WiFi 凭据时由 BLE 模块调用（在 NimBLE 线程中）
+static void on_ble_wifi_received(const char* ssid, const char* password)
+{
+    strncpy(ble_new_ssid, ssid, sizeof(ble_new_ssid) - 1);
+    strncpy(ble_new_pass, password, sizeof(ble_new_pass) - 1);
+    ble_wifi_received = true;
+    ESP_LOGI(TAG, "📡 BLE 配网：收到新 WiFi 凭据，将尝试重连...");
+}
+
 /**
- * @brief 🉰️ 程序主入口（这里是一切的开始）
+ * @brief 🏁 程序主入口（这里是一切的开始）
  *
  * ESP32启动后会自动调用这个函数。
- * 
+ *
  * 主要工作流程：
  * 1. 初始化各种硬件（LED、麦克风、扬声器）
  * 2. 连接WiFi和WebSocket服务器
@@ -546,55 +577,64 @@ static void execute_exit_logic(void)
 extern "C" void app_main(void)
 {
     // ① 初始化NVS（非易失性存储）
-    // NVS用于保存WiFi配置等信息，即使断电也不会丢失
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
     {
-        // 如果NVS区域满了或版本不匹配，就清空重来
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
 
-    // ② 从 NVS 加载配置（首次启动会将硬编码默认值写入 NVS）
+    // ② 从 NVS 加载配置（首次启动会将编译期默认值写入 NVS）
     std::string cfg_ssid, cfg_password, cfg_ws_uri;
-    ret = nvs_config_load(WIFI_SSID, WIFI_PASS, WS_URI,
+    ret = nvs_config_load(WIFI_SSID_DEFAULT, WIFI_PASS_DEFAULT, WS_URI_DEFAULT,
                           cfg_ssid, cfg_password, cfg_ws_uri);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "NVS 配置加载失败，使用编译期默认值");
-        cfg_ssid = WIFI_SSID;
-        cfg_password = WIFI_PASS;
-        cfg_ws_uri = WS_URI;
+        cfg_ssid = WIFI_SSID_DEFAULT;
+        cfg_password = WIFI_PASS_DEFAULT;
+        cfg_ws_uri = WS_URI_DEFAULT;
     }
 
     // ③ 启动 BLE 配网服务（WiFi 之前启动，确保连不上 WiFi 时也能配网）
     ESP_LOGI(TAG, "启动 BLE 配网服务...");
-    ret = ble_provisioning_start();
+    ret = ble_provisioning_start(on_ble_wifi_received);
     if (ret != ESP_OK) {
         ESP_LOGW(TAG, "BLE 配网启动失败: %s（不影响主功能）", esp_err_to_name(ret));
     }
 
-    // ④ 初始化LED灯（用于状态指示）
+    // ④ 初始化LED灯
     init_led();
 
-    // ⑤ 连接WiFi网络（使用 NVS 中的凭据）
+    // ⑤ 连接WiFi网络（失败则等待 BLE 配网）
     ESP_LOGI(TAG, "正在连接WiFi...");
     wifi_manager = new WiFiManager(cfg_ssid, cfg_password);
-    if (wifi_manager->connect() != ESP_OK) {
-        ESP_LOGE(TAG, "WiFi连接失败");
-        ESP_LOGE(TAG, "请检查：1) WiFi名称和密码是否正确 2) 路由器是否开启");
-        ESP_LOGW(TAG, "BLE 配网服务仍在运行，可通过蓝牙配置新的 WiFi 凭据");
-        delete wifi_manager;
-        return;
-    }
+    while (wifi_manager->connect() != ESP_OK) {
+        ESP_LOGW(TAG, "WiFi 连接失败，等待 BLE 配网...");
+        ESP_LOGW(TAG, "请用手机 BLE 工具连接 XinOu-XXXX 写入正确的 WiFi 凭据");
 
-    // ⑥ 连接WebSocket服务器（使用 NVS 中的地址）
+        // 等待 BLE 收到新凭据
+        while (!ble_wifi_received) {
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+        ble_wifi_received = false;
+
+        // 用新凭据重试
+        ESP_LOGI(TAG, "收到新 WiFi 凭据，尝试连接: %s", ble_new_ssid);
+        delete wifi_manager;
+        cfg_ssid = ble_new_ssid;
+        cfg_password = ble_new_pass;
+        wifi_manager = new WiFiManager(cfg_ssid, cfg_password);
+    }
+    ESP_LOGI(TAG, "✅ WiFi 已连接");
+
+    // ⑥ 连接WebSocket服务器
     ESP_LOGI(TAG, "正在连接WebSocket服务器...");
     websocket_client = new WebSocketClient(cfg_ws_uri, true, 5000);
-    websocket_client->setEventCallback(on_websocket_event);  // 设置事件处理函数
+    websocket_client->setEventCallback(on_websocket_event);
     if (websocket_client->connect() != ESP_OK) {
         ESP_LOGE(TAG, "WebSocket连接失败");
-        ESP_LOGE(TAG, "请检查：1) 电脑上的server.py是否在运行 2) IP地址是否正确");
+        ESP_LOGE(TAG, "请检查：1) server.py是否在运行 2) WS_URI_DEFAULT 是否正确");
         delete websocket_client;
         delete wifi_manager;
         return;
@@ -808,7 +848,7 @@ extern "C" void app_main(void)
     }
 
     // 初始化音频管理器
-    audio_manager = new AudioManager(SAMPLE_RATE, 10, 1);  // 16kHz, 10秒录音, 1秒响应（流式播放不用response_buffer）
+    audio_manager = new AudioManager(SAMPLE_RATE, 4, 1);  // 16kHz, 4秒环形录音缓冲区, 1秒响应（流式播放不用response_buffer）
     ret = audio_manager->init();
     if (ret != ESP_OK)
     {
@@ -940,7 +980,7 @@ extern "C" void app_main(void)
         else if (current_state == STATE_RECORDING)
         {
             // 🎙️ 录音状态：记录用户说的话
-            if (audio_manager->isRecording() && !audio_manager->isRecordingBufferFull())
+            if (audio_manager->isRecording())
             {
                 // 将音频数据存入录音缓冲区
                 int samples = audio_chunksize / sizeof(int16_t);
@@ -1175,8 +1215,7 @@ extern "C" void app_main(void)
                         }
 
                         // 只有在用户确实说话了才发送数据
-                        size_t rec_len = 0;
-                        audio_manager->getRecordingBuffer(rec_len);
+                        size_t rec_len = audio_manager->getRecordingLength();
                         if (user_started_speaking && rec_len > SAMPLE_RATE / 4) // 至少0.25秒的音频
                         {
                             // 发送录音结束事件
@@ -1218,33 +1257,6 @@ extern "C" void app_main(void)
                         }
                     }
                 }
-            }
-            else if (audio_manager->isRecordingBufferFull())
-            {
-                // ⚠️ 录音时间太长，缓冲区满了（10秒上限）
-                ESP_LOGW(TAG, "录音缓冲区已满，停止录音");
-                audio_manager->stopRecording();
-                is_realtime_streaming = false;  // 停止实时流式传输
-
-                // 刷新发送缓冲区中的剩余音频
-                if (stream_send_buf_pos > 0 && websocket_client != nullptr && websocket_client->isConnected()) {
-                    websocket_client->sendBinary(stream_send_buf, stream_send_buf_pos);
-                    stream_send_buf_pos = 0;
-                }
-
-                // 发送录音结束事件
-                if (websocket_client != nullptr && websocket_client->isConnected())
-                {
-                    const char* end_msg = "{\"event\":\"recording_ended\"}";
-                    websocket_client->sendText(end_msg);
-                    ESP_LOGI(TAG, "发送录音结束事件（缓冲区满）");
-                }
-
-                // 切换到等待响应状态
-                current_state = STATE_WAITING_RESPONSE;
-                response_wait_start = xTaskGetTickCount();
-                audio_manager->resetResponsePlayedFlag(); // 重置播放标志
-                ESP_LOGI(TAG, "等待服务器响应音频...");
             }
             
             // ⏱️ 连续对话模式下，检查是否超时没说话
