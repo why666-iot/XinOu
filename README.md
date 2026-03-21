@@ -1,9 +1,4 @@
-待办：
-1.增加配网功能
-2.ws接口协议（腾讯在线文档）
-3.调试
-
-# 心偶 · 嵌入式端文档
+# 心偶 · 嵌入式端文档 v0.2.0
 
 > 本文档面向 AI / 软件方向队友，帮助快速理解嵌入式侧的工作原理、数据流和对接协议。
 
@@ -25,12 +20,33 @@
 
 ## 系统架构
 
-### 状态机（核心逻辑在 `main/main.cc`）
+### 启动流程
 
 ```
-      上电
-        │
-        ▼
+上电
+ │
+ ├─ nvs_config_load()：从 NVS 读取 WiFi 凭据
+ │       └─ 若 NVS 为空（首次上电/擦除后）→ 写入编译期默认值（WIFI_SSID_DEFAULT）
+ │
+ ├─ ble_provisioning_start()：启动 BLE 广播（始终运行，供随时配网）
+ │
+ ├─ WiFiManager.connect()：尝试连接 WiFi（最多重试 5 次）
+ │       ├─ 成功 ──► 连接 WebSocket，进入语音助手主循环
+ │       └─ 失败 ──► 打印提示，阻塞等待 BLE 写入新凭据
+ │                        │
+ │                   BLE 收到 SSID + Password
+ │                        │
+ │                   写入 NVS → 自动重启 → 重走流程
+ │
+ └─ 进入语音助手状态机（见下方）
+```
+
+### 语音助手状态机
+
+```
+      上电/重启
+          │
+          ▼
 ┌─────────────────────┐
 │  STATE_WAITING_WAKEUP│  ← 持续运行 WakeNet，等待唤醒词"你好小智"
 └─────────┬───────────┘
@@ -51,28 +67,6 @@
           │ AI 回复播放完毕（连续对话模式）
           └──────────────────────► STATE_RECORDING（下一轮）
 ```
-
-### 启动流程（含规划中的 BLE 配网）
-
-```
-上电
- │
- ├─ 读取 NVS 中的 WiFi 凭据          ← [规划中] 当前为硬编码
- │
- ├─ 有凭据 ──► 尝试连接 WiFi（最多重试 5 次）
- │                 │
- │                 ├─ 成功 ──► 进入语音助手主循环（状态机）
- │                 │
- │                 └─ 失败 ──► 自动进入重配网模式（BLE 广播）[规划中]
- │
- └─ 无凭据 ──► 启动 BLE 广播，等待小程序配网  [规划中]
-                   │
-              收到 SSID + 密码 + 服务器地址
-                   │
-              写入 NVS → 重启 → 重走流程
-```
-
-> **当前状态**：WiFi 凭据硬编码在 `main/main.cc`，每次换网络需重新编译烧录。BLE 配网为规划中功能（v0.2.0）。
 
 ### 音频数据流
 
@@ -96,23 +90,91 @@ bsp_get_feed_data()
 
 ---
 
+## BLE 配网（v0.2.0 新增）
+
+### 概述
+
+设备上电后**始终开启 BLE 广播**，支持随时通过手机写入 WiFi 凭据。凭据写入 NVS 后设备自动重启并连接新 WiFi，无需重新编译烧录。
+
+### BLE 服务规格
+
+| 项目 | 值 |
+|------|----|
+| 协议栈 | NimBLE（比 Bluedroid 轻约 50-80KB） |
+| 广播名 | `XinOu-XXXX`（XXXX = MAC 后 4 位，每台设备唯一） |
+| 服务 UUID | `0xFF01` |
+
+| Characteristic | UUID | 权限 | 说明 |
+|----------------|------|------|------|
+| SSID | `0xFF02` | READ / WRITE | WiFi 名称，最大 32 字节 |
+| Password | `0xFF03` | WRITE only | WiFi 密码，最大 64 字节（安全考虑不可读回） |
+
+> 两个 Characteristic 均有 `0x2901 User Description` 描述符，可用 nRF Connect 等工具读取确认字段含义。
+
+### 写入操作流程（必须按顺序）
+
+```
+1. 扫描并连接 BLE 设备（名称：XinOu-XXXX）
+        │
+2. 写入 0xFF02（SSID）← 必须先写
+        │
+3. 写入 0xFF03（Password）← 触发保存和重启
+        │
+4. 设备自动重启，连接新 WiFi
+```
+
+> **注意**：Password 必须在 SSID 之后写入，否则设备会忽略本次 Password。SSID 写入后不会立即触发任何动作。
+
+### 调试工具
+
+推荐使用 **nRF Connect for Mobile**（Android/iOS 均有）：
+
+1. 打开 nRF Connect → SCANNER → 找到 `XinOu-XXXX`
+2. 点 CONNECT → 进入 CLIENT 选项卡
+3. 展开 `Unknown Service (0xFF01)`
+4. 点 0xFF02 右侧的写入按钮 → 选 UTF-8 → 输入 WiFi 名称 → SEND
+5. 点 0xFF03 右侧的写入按钮 → 选 UTF-8 → 输入 WiFi 密码 → SEND
+6. 等待约 1 秒，设备自动重启
+
+> 服务和 Characteristic 显示为 "Unknown" 是正常现象——nRF Connect 只识别 Bluetooth SIG 官方 UUID，自定义 UUID（0xFF01 等）均显示 Unknown，不影响读写功能。
+
+### WS_URI（服务器地址）
+
+WS_URI **不通过 BLE 配置**，编译进固件：
+
+```cpp
+// main/main.cc 约第 89 行
+#define WS_URI_DEFAULT "ws://10.225.67.53:8888"
+```
+
+换服务器时修改此宏并重新编译烧录。
+
+---
+
 ## 项目结构
 
 ```
 speech_commands_recognition_with_llm/
 │
 ├── main/                          # ESP32 固件源码（ESP-IDF / C++）
-│   ├── main.cc                    # ★ 核心：状态机、语音识别调度、WiFi 连接
+│   ├── main.cc                    # ★ 核心：状态机、语音识别调度、WiFi/BLE 初始化
 │   │
 │   ├── audio_manager.cc/.h        # ★ 音频管理器
-│   │                              #   - 录音缓冲区（最长 10 秒）
+│   │                              #   - 录音缓冲区（最长 15 秒环形）
 │   │                              #   - 64KB 环形缓冲区：流式接收服务器音频并边收边播
 │   │                              #   - addStreamingAudioChunk() / finishStreamingPlayback()
 │   │
+│   ├── ble_provisioning.cc/.h     # ★ BLE 配网服务（v0.2.0 新增）
+│   │                              #   - NimBLE GATT 服务，暴露 SSID / Password 可写 Characteristic
+│   │                              #   - 广播设备名 XinOu-XXXX，写入后触发回调
+│   │
+│   ├── nvs_config.cc/.h           # NVS 持久化配置（v0.2.0 新增）
+│   │                              #   - nvs_config_load()：读取或初始化 WiFi 凭据
+│   │                              #   - nvs_config_save_wifi()：BLE 配网后更新凭据
+│   │
 │   ├── websocket_client.cc/.h     # WebSocket 客户端封装
 │   │                              #   - 发送：文本 JSON 事件 + 二进制音频块
-│   │                              #   - 自动重连任务
-│   │                              #   - 事件回调（接收服务器推送）
+│   │                              #   - 自动重连任务，事件回调
 │   │
 │   ├── bsp_board.cc/.h            # 硬件抽象层（BSP）
 │   │                              #   - I2S 初始化（INMP441 麦克风 / MAX98357A 功放）
@@ -136,19 +198,6 @@ speech_commands_recognition_with_llm/
     ├── omni_realtime_client.py    # DashScope qwen-omni-turbo-realtime API 封装
     ├── system_prompt.md           # AI 角色设定（可直接编辑定义"心偶"人格）
     └── requirements.txt           # Python 依赖
-```
-
-**规划中（v0.2.0）：**
-
-```
-main/
-├── ble_provisioning.cc/.h   # BLE GATT 配网服务（NimBLE 栈）
-│                            #   - 广播设备名，等待小程序连接
-│                            #   - 暴露 2 个可写 Characteristic：SSID / Password
-│                            #   - 写入完成后触发 NVS 存储 + 重启
-└── nvs_config.cc/.h         # NVS 持久化配置读写
-                             #   - 存储：WiFi 凭据、服务器地址
-                             #   - 替代当前 main.cc 中的硬编码宏定义
 ```
 
 ---
@@ -203,15 +252,29 @@ idf.py build
 idf.py flash monitor
 ```
 
-烧录前需在 [main/main.cc](main/main.cc) 修改以下硬编码常量：
+### 配置项
+
+在 [main/main.cc](main/main.cc) 约第 80-90 行修改：
 
 ```cpp
-#define WIFI_SSID   "你的WiFi名"
-#define WIFI_PASS   "你的WiFi密码"
-#define WS_URI      "ws://服务器IP:8888"
+// WiFi 默认凭据（首次上电写入 NVS；留空则强制走 BLE 配网）
+#define WIFI_SSID_DEFAULT ""
+#define WIFI_PASS_DEFAULT ""
+
+// WebSocket 服务器地址（编译进固件，不通过 BLE 配置）
+#define WS_URI_DEFAULT "ws://10.225.67.53:8888"
 ```
 
-> **注意**：BLE 配网功能实现后（v0.2.0），以上硬编码将被移除，改为通过微信小程序动态配置。
+### 首次烧录 / 换网络
+
+**方式 A（BLE 配网，推荐）**：保持 `WIFI_SSID_DEFAULT ""` 为空，烧录后用 nRF Connect 写入 WiFi 凭据即可，无需重新编译。
+
+**方式 B（硬编码，调试用）**：在 `WIFI_SSID_DEFAULT` / `WIFI_PASS_DEFAULT` 填入账密，重新编译烧录。注意若 NVS 里已有旧凭据，需先执行：
+
+```bash
+idf.py erase-flash   # 清空 NVS，强制用新默认值
+idf.py flash monitor
+```
 
 ---
 
@@ -219,8 +282,8 @@ idf.py flash monitor
 
 | 版本 | 状态 | 主要内容 |
 |------|------|----------|
-| v0.1.0 | ✅ 当前 | 基础语音助手：唤醒词 + 连续对话 + 本地命令词，WiFi 硬编码，本地服务器 |
-| v0.2.0 | 规划中 | BLE 配网：NVS 存储凭据，微信小程序扫码配网，支持换网络重配 |
+| v0.1.0 | ✅ 完成 | 基础语音助手：唤醒词 + 连续对话 + 本地命令词，WiFi 硬编码，本地服务器 |
+| v0.2.0 | ✅ 当前 | BLE 配网：NVS 存储凭据，nRF Connect / 小程序配网，支持换网络重配 |
 | v0.3.0 | 规划中 | 云端服务器部署，小程序完整配网 UI，产品化独立运行 |
 | v1.0.0 | 规划中 | 完整产品：扫码→配网→对话，长期记忆，情感陪伴人格 |
 
