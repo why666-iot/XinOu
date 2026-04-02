@@ -1,7 +1,14 @@
-pyserial>=3.5
-pydub>=0.25.1
-wave
+# 心偶后端依赖
+# 安装：pip install -r requirements.txt
+
+# WebSocket 服务器
 websockets>=11.0.3
-keyboard>=0.13.5
-pyaudio>=0.2.11
-pynput>=1.7.6
+
+# 阿里云 DashScope SDK（ASR + TTS）
+dashscope>=1.20.0
+
+# LLM 调用（OpenAI 兼容，支持 DeepSeek / Qwen 等）
+openai>=1.0.0
+
+# 数值计算（音频处理，asr 模块写 WAV 时用到 wave 标准库，无需 numpy）
+# numpy>=1.24.0  # Phase 3 记忆系统可能用到，暂不强制安装

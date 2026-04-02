@@ -2,7 +2,31 @@
   "permissions": {
     "allow": [
       "Bash(cd \"D:/桌面/项目/心偶/提示词\" && python3 -c \"\nimport zipfile, re, sys\nfor fname in ['00基础设定.docx', '00工作模式.docx', '【家庭】场景模块.docx']:\n    print\\('='*60\\)\n    print\\(f'FILE: {fname}'\\)\n    print\\('='*60\\)\n    try:\n        with zipfile.ZipFile\\(fname\\) as z:\n            with z.open\\('word/document.xml'\\) as f:\n                content = f.read\\(\\).decode\\('utf-8'\\)\n                text = re.sub\\(r'<[^>]+>', '', content\\)\n                text = re.sub\\(r'\\\\s+', ' ', text\\).strip\\(\\)\n                print\\(text[:3000]\\)\n    except Exception as e:\n        print\\(f'Error: {e}'\\)\n    print\\(\\)\n\" 2>&1 || python -c \"\nimport zipfile, re, sys\nfor fname in ['00基础设定.docx', '00工作模式.docx', '【家庭】场景模块.docx']:\n    print\\('='*60\\)\n    print\\(f'FILE: {fname}'\\)\n    print\\('='*60\\)\n    try:\n        with zipfile.ZipFile\\(fname\\) as z:\n            with z.open\\('word/document.xml'\\) as f:\n                content = f.read\\(\\).decode\\('utf-8'\\)\n                text = re.sub\\(r'<[^>]+>', '', content\\)\n                text = re.sub\\(r'\\\\s+', ' ', text\\).strip\\(\\)\n                print\\(text[:3000]\\)\n    except Exception as e:\n        print\\(f'Error: {e}'\\)\n    print\\(\\)\n\")",
-      "Bash(python -u -X utf8 -c \"import zipfile,xml.etree.ElementTree as ET;ns={'w':'http://schemas.openxmlformats.org/wordprocessingml/2006/main'};f='D:/桌面/项目/心偶/提示词/00基础设定.docx';z=zipfile.ZipFile\\(f\\);tree=ET.parse\\(z.open\\('word/document.xml'\\)\\);root=tree.getroot\\(\\);[print\\(''.join\\(t.text for t in p.findall\\('.//w:t',ns\\) if t.text\\)\\) for p in root.findall\\('.//w:p',ns\\)]\")"
+      "Bash(python -u -X utf8 -c \"import zipfile,xml.etree.ElementTree as ET;ns={'w':'http://schemas.openxmlformats.org/wordprocessingml/2006/main'};f='D:/桌面/项目/心偶/提示词/00基础设定.docx';z=zipfile.ZipFile\\(f\\);tree=ET.parse\\(z.open\\('word/document.xml'\\)\\);root=tree.getroot\\(\\);[print\\(''.join\\(t.text for t in p.findall\\('.//w:t',ns\\) if t.text\\)\\) for p in root.findall\\('.//w:p',ns\\)]\")",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(xxd /tmp/HeartBotBackend/models/auth_model.py | head -5)",
+      "Read(//d/桌面/项目/心偶/计划书//**)",
+      "Read(//d/桌面/项目/心偶/计划书/**)",
+      "Bash(antiword \"D:/桌面/项目/心偶/计划书/心偶大创申报书.doc\" 2>/dev/null | head -500)",
+      "Bash(python -c \"\nimport subprocess\nfiles = [\n    'D:/桌面/项目/心偶/计划书/心偶大创申报书.doc',\n    'D:/桌面/项目/心偶/计划书/（王）心偶大创申报书.doc',\n    'D:/桌面/项目/心偶/计划书/（田）心偶大创申报书.doc',\n    'D:/桌面/项目/心偶/计划书/（陈）软件部分流程图.doc',\n]\nfor f in files:\n    print\\(f'=== {f} ==='\\)\n    try:\n        result = subprocess.run\\(['antiword', f], capture_output=True, text=True, timeout=10\\)\n        print\\(result.stdout[:200] if result.stdout else f'\\(no stdout, stderr: {result.stderr[:200]}\\)'\\)\n    except Exception as e:\n        print\\(f'Error: {e}'\\)\n    print\\(\\)\n\")",
+      "Bash(cp \"D:/桌面/项目/心偶/计划书/心偶大创申报书.doc\" /tmp/main.doc 2>/dev/null && cp \"D:/桌面/项目/心偶/计划书/（王）心偶大创申报书.doc\" /tmp/wang.doc 2>/dev/null && cp \"D:/桌面/项目/心偶/计划书/（田）心偶大创申报书.doc\" /tmp/tian.doc 2>/dev/null && cp \"D:/桌面/项目/心偶/计划书/（陈）软件部分流程图.doc\" /tmp/chen.doc 2>/dev/null && echo \"copy done\")",
+      "Bash(antiword /tmp/main.doc 2>&1 | head -20)",
+      "Bash(pip install:*)",
+      "Bash(python3 << 'PYEOF'\nfrom docx import Document\n\npath = r\"D:\\\\桌面\\\\项目\\\\心偶\\\\计划书\\\\心偶大创申报书.doc\"\ntry:\n    doc = Document\\(path\\)\n    for p in doc.paragraphs:\n        if p.text.strip\\(\\):\n            print\\(p.text\\)\nexcept Exception as e:\n    print\\(f\"Error as .doc: {e}\"\\)\nPYEOF)",
+      "Bash(mkdir -p /c/temp_xinou)",
+      "Bash(cp \"D:/桌面/项目/心偶/计划书/心偶大创申报书.doc\" /c/temp_xinou/main.doc)",
+      "Bash(cp \"D:/桌面/项目/心偶/计划书/（王）心偶大创申报书.doc\" /c/temp_xinou/wang.doc)",
+      "Bash(cp \"D:/桌面/项目/心偶/计划书/（田）心偶大创申报书.doc\" /c/temp_xinou/tian.doc)",
+      "Bash(cp \"D:/桌面/项目/心偶/计划书/（陈）软件部分流程图.doc\" /c/temp_xinou/chen.doc)",
+      "Read(//c//**)",
+      "Bash(python3 -c \"\nimport win32com.client, os\n\nword = win32com.client.Dispatch\\('Word.Application'\\)\nword.Visible = False\n\nnames = ['main', 'wang', 'tian', 'chen']\nfor name in names:\n    inpath = os.path.normpath\\('C:/temp_xinou/' + name + '.doc'\\)\n    outpath = os.path.normpath\\(os.path.expanduser\\('~'\\) + '/xinou_' + name + '.txt'\\)\n    try:\n        doc = word.Documents.Open\\(inpath\\)\n        text = doc.Content.Text\n        with open\\(outpath, 'w', encoding='utf-8'\\) as f:\n            f.write\\(text\\)\n        doc.Close\\(False\\)\n        print\\(name + ': OK ' + str\\(len\\(text\\)\\) + ' chars'\\)\n    except Exception as e:\n        print\\(name + ': ' + str\\(e\\)\\)\n\nword.Quit\\(\\)\n\")",
+      "Bash(python3 C:/Users/27954/extract_docs.py)",
+      "Bash(gh api:*)",
+      "Bash(which gh:*)",
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:help.aliyun.com)"
     ]
   }
 }

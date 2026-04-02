@@ -193,11 +193,45 @@ speech_commands_recognition_with_llm/
 │                                  #   espressif/esp-sr ^2.1.0（WakeNet/MultiNet/VAD）
 │                                  #   espressif/esp_websocket_client 1.4.0
 │
-└── server/                        # 服务器端（Python，运行在 PC / 云服务器）
-    ├── server.py                  # ★ 核心：WebSocket 服务，桥接 ESP32 ↔ DashScope
-    ├── omni_realtime_client.py    # DashScope qwen-omni-turbo-realtime API 封装
-    ├── system_prompt.md           # AI 角色设定（可直接编辑定义"心偶"人格）
-    └── requirements.txt           # Python 依赖
+└── server/
+    ├── main.py                    # 启动入口（uvicorn 启动 FastAPI）
+    ├── config.py                  # 全局配置（API keys、端口、模型名）
+    ├── requirements.txt           # Python 依赖
+    │
+    ├── api/
+    │   └── websocket_handler.py   # WebSocket 端点，接收ESP32连接，调度各模块
+    │
+    ├── core/
+    │   ├── orchestrator.py        # ChatOrchestrator：主流程编排（ASR→分类→LLM→TTS）
+    │   ├── session_manager.py     # 管理每个设备的会话状态（连接、轮次计数等）
+    │   └── pipeline.py            # 流式 pipeline 的异步生成器封装
+    │
+    ├── modules/
+    │   ├── asr.py                 # ASR 模块：接入 Paraformer-realtime
+    │   ├── llm.py                 # LLM 模块：场景分类 + 主对话（统一接口）
+    │   ├── tts.py                 # TTS 模块：接入火山引擎/CosyVoice
+    │   └── memory.py              # 记忆模块：读写 SQLite，记忆压缩
+    │
+    ├── prompts/
+    │   ├── base.txt               # 基础设定（人格、语言风格、交互逻辑）
+    │   ├── classifier.txt         # 场景分类提示词（第1次LLM调用用）
+    │   ├── work/
+    │   │   ├── promotion_failure.txt   # 升职加薪失败
+    │   │   ├── layoff.txt              # 裁员失业
+    │   │   ├── workplace_pua.txt       # 职场PUA
+    │   │   ├── overtime.txt            # 加班内卷
+    │   │   └── job_search.txt          # 求职焦虑
+    │   ├── family/
+    │   │   ├── separation_fear.txt     # 离别恐惧
+    │   │   ├── future_loneliness.txt   # 未来迷茫
+    │   │   └── family_of_origin.txt    # 原生家庭
+    │   └── daily.txt              # 日常闲聊（无特定场景时使用）
+    │
+    └── database/
+        ├── db.py                  # SQLite 连接管理（aiosqlite）
+        ├── schema.sql             # 建表语句
+        └── xinou.db               # SQLite 数据库文件（运行时生成）
+
 ```
 
 ---

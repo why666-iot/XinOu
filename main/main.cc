@@ -80,14 +80,14 @@ static const char *TAG = "语音识别"; // 日志标签
 
 /// 📡 网络配置 - 首次烧录的默认值（写入 NVS 后以 NVS 为准）
 /// 后续通过 BLE 配网修改，无需重新编译
-#define WIFI_SSID_DEFAULT ""
-#define WIFI_PASS_DEFAULT ""
+#define WIFI_SSID_DEFAULT "ubuntu"
+#define WIFI_PASS_DEFAULT "why666666"
 
 // 🌐 WebSocket 服务器配置
-// 调试阶段：改为你电脑的局域网 IP，如 ws://10.225.67.53:8888
+// 调试阶段：改为你电脑的局域网 IP，如 ws://10.225.67.181:8888
 // 对接云端：改为云服务器地址，如 ws://your-server.com:8888
 // 改完重新编译烧录即可，仅首次烧录或 NVS 清除后生效
-#define WS_URI_DEFAULT "ws://10.225.67.53:8888"
+#define WS_URI_DEFAULT "ws://10.54.18.181:8888"
 
 // WiFi和WebSocket管理器
 static WiFiManager* wifi_manager = nullptr;
@@ -1117,6 +1117,34 @@ extern "C" void app_main(void)
                             ESP_LOGI(TAG, "连续对话：检测到说话，开始实时传输...");
                         } else {
                             ESP_LOGI(TAG, "首次对话：检测到说话，开始实时传输...");
+                        }
+
+                        // 🔙 补发预缓冲：把 VAD 触发前已录入缓冲区的音频一次性发出去
+                        // 避免首字/前几帧因 VAD 延迟而丢失
+                        if (websocket_client != nullptr && websocket_client->isConnected()) {
+                            size_t prebuf_samples = audio_manager->getRecordingLength();
+                            if (prebuf_samples > 0) {
+                                int16_t *prebuf = (int16_t *)malloc(prebuf_samples * sizeof(int16_t));
+                                if (prebuf != nullptr) {
+                                    size_t exported = 0;
+                                    audio_manager->exportRecordingData(prebuf, exported);
+                                    if (exported > 0) {
+                                        size_t prebuf_bytes = exported * sizeof(int16_t);
+                                        // 分块发送，避免单帧过大
+                                        const size_t CHUNK = STREAM_SEND_BUF_SIZE;
+                                        const uint8_t *ptr = (const uint8_t *)prebuf;
+                                        while (prebuf_bytes > 0) {
+                                            size_t to_send = (prebuf_bytes > CHUNK) ? CHUNK : prebuf_bytes;
+                                            websocket_client->sendBinary(ptr, to_send);
+                                            ptr += to_send;
+                                            prebuf_bytes -= to_send;
+                                        }
+                                        ESP_LOGI(TAG, "预缓冲补发：%zu 样本 (%.2f 秒)",
+                                                 exported, (float)exported / SAMPLE_RATE);
+                                    }
+                                    free(prebuf);
+                                }
+                            }
                         }
                     }
                     
