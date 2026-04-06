@@ -1,5 +1,5 @@
 """
-心偶 AI 情感陪伴机器人 - WebSocket 服务器 (Phase 1: ASR→LLM→TTS)
+心偶 AI 情感陪伴机器人 - WebSocket 服务器 (Phase 2: 场景分类 + 提示词路由)
 
 启动方法（在 server/ 目录下运行）：
     cd server
@@ -20,7 +20,9 @@ import asyncio
 import json
 import os
 import socket
+import struct
 import sys
+from datetime import datetime
 
 import websockets
 
@@ -30,6 +32,40 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import config
 from core import orchestrator
 
+# ── Debug 录音保存 ─────────────────────────────────────────
+DEBUG_AUDIO_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "debug_audio")
+os.makedirs(DEBUG_AUDIO_DIR, exist_ok=True)
+
+
+def _save_debug_wav(pcm_bytes: bytes, asr_text: str) -> str:
+    """将 PCM 数据保存为 WAV 文件，返回文件路径"""
+    # 文件名：时间戳_ASR结果前10字
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_text = (asr_text or "无识别")[:10].replace("/", "_").replace("\\", "_")
+    filename = f"{ts}_{safe_text}.wav"
+    filepath = os.path.join(DEBUG_AUDIO_DIR, filename)
+
+    # 写 WAV 头 + PCM 数据
+    num_channels = 1
+    sample_width = 2  # 16-bit
+    data_size = len(pcm_bytes)
+    with open(filepath, "wb") as f:
+        # RIFF header
+        f.write(b"RIFF")
+        f.write(struct.pack("<I", 36 + data_size))
+        f.write(b"WAVE")
+        # fmt chunk
+        f.write(b"fmt ")
+        f.write(struct.pack("<IHHIIHH", 16, 1, num_channels, config.SAMPLE_RATE,
+                            config.SAMPLE_RATE * num_channels * sample_width,
+                            num_channels * sample_width, sample_width * 8))
+        # data chunk
+        f.write(b"data")
+        f.write(struct.pack("<I", data_size))
+        f.write(pcm_bytes)
+
+    return filepath
+
 
 async def handle_connection(websocket) -> None:
     """处理单个 ESP32 WebSocket 连接（每个连接独立协程）"""
@@ -38,7 +74,9 @@ async def handle_connection(websocket) -> None:
 
     audio_buffer = bytearray()
     recording = False
-    history: list[dict] = []  # 本连接的对话历史
+    history: list[dict] = []      # 本连接的对话历史
+    prev_scene = ""               # 上轮场景 ID（用于短语句场景继承）
+    classify_context: list[str] = []  # 场景分类上下文累积（跨轮共享）
 
     try:
         async for message in websocket:
@@ -72,12 +110,17 @@ async def handle_connection(websocket) -> None:
                     duration = len(pcm) / (config.SAMPLE_RATE * 2)
                     print(f"[{client_ip}] 录音结束，时长 {duration:.2f}s，大小 {len(pcm)} bytes")
 
-                    # ── 全链路处理：ASR → LLM → TTS ─────────
-                    user_text, reply_parts, audio_gen = await orchestrator.process(
-                        pcm, history
+                    # ── 全链路处理：ASR → 分类 → LLM → TTS ──
+                    user_text, scene, reply_parts, audio_gen = await orchestrator.process(
+                        pcm, history, prev_scene, classify_context
                     )
 
+                    # 保存 debug 音频
+                    debug_path = _save_debug_wav(pcm, user_text)
+                    print(f"[DEBUG] 录音已保存: {debug_path}")
+
                     if user_text:
+                        prev_scene = scene  # 记住本轮场景
                         # 流式发送 TTS 音频给 ESP32
                         chunk_count = 0
                         async for chunk in audio_gen:
@@ -128,7 +171,7 @@ def get_local_ip() -> str:
 
 async def main() -> None:
     print("=" * 55)
-    print("  心偶 WebSocket 服务器  (Phase 1: ASR→LLM→TTS)")
+    print("  心偶 WebSocket 服务器  (Phase 2: 场景分类 + 提示词路由)")
     print("=" * 55)
 
     # 检查 API keys

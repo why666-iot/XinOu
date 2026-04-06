@@ -84,10 +84,10 @@ static const char *TAG = "语音识别"; // 日志标签
 #define WIFI_PASS_DEFAULT "why666666"
 
 // 🌐 WebSocket 服务器配置
-// 调试阶段：改为你电脑的局域网 IP，如 ws://10.225.67.181:8888
+// 调试阶段：改为你电脑的局域网 IP，如 ws://10.186.219.181:8888
 // 对接云端：改为云服务器地址，如 ws://your-server.com:8888
 // 改完重新编译烧录即可，仅首次烧录或 NVS 清除后生效
-#define WS_URI_DEFAULT "ws://10.54.18.181:8888"
+#define WS_URI_DEFAULT "ws://10.186.219.181:8888"
 
 // WiFi和WebSocket管理器
 static WiFiManager* wifi_manager = nullptr;
@@ -177,6 +177,10 @@ static bool needs_ws_resend = false;
 #define STREAM_SEND_BUF_SIZE 4096
 static uint8_t stream_send_buf[STREAM_SEND_BUF_SIZE];
 static size_t stream_send_buf_pos = 0;
+
+// 预缓冲限制：连续对话模式下只补发最后 N 秒，避免大量静音污染 ASR
+#define PREBUF_MAX_SECONDS 0.5f
+#define PREBUF_MAX_SAMPLES ((size_t)(SAMPLE_RATE * PREBUF_MAX_SECONDS))
 
 /**
  * @brief WebSocket事件处理函数
@@ -1119,8 +1123,9 @@ extern "C" void app_main(void)
                             ESP_LOGI(TAG, "首次对话：检测到说话，开始实时传输...");
                         }
 
-                        // 🔙 补发预缓冲：把 VAD 触发前已录入缓冲区的音频一次性发出去
+                        // 🔙 补发预缓冲：把 VAD 触发前已录入缓冲区的音频发出去
                         // 避免首字/前几帧因 VAD 延迟而丢失
+                        // 连续对话模式下只发最后 0.5 秒，避免大量静音污染 ASR
                         if (websocket_client != nullptr && websocket_client->isConnected()) {
                             size_t prebuf_samples = audio_manager->getRecordingLength();
                             if (prebuf_samples > 0) {
@@ -1129,18 +1134,30 @@ extern "C" void app_main(void)
                                     size_t exported = 0;
                                     audio_manager->exportRecordingData(prebuf, exported);
                                     if (exported > 0) {
-                                        size_t prebuf_bytes = exported * sizeof(int16_t);
+                                        // 连续对话模式：裁剪预缓冲，只发送最后 PREBUF_MAX_SAMPLES
+                                        const uint8_t *send_ptr;
+                                        size_t send_bytes;
+                                        if (is_continuous_conversation && exported > PREBUF_MAX_SAMPLES) {
+                                            size_t skip = exported - PREBUF_MAX_SAMPLES;
+                                            send_ptr = (const uint8_t *)(prebuf + skip);
+                                            send_bytes = PREBUF_MAX_SAMPLES * sizeof(int16_t);
+                                            ESP_LOGI(TAG, "预缓冲裁剪：%zu → %zu 样本 (%.2f → %.2f 秒)",
+                                                     exported, (size_t)PREBUF_MAX_SAMPLES,
+                                                     (float)exported / SAMPLE_RATE, PREBUF_MAX_SECONDS);
+                                        } else {
+                                            send_ptr = (const uint8_t *)prebuf;
+                                            send_bytes = exported * sizeof(int16_t);
+                                            ESP_LOGI(TAG, "预缓冲补发：%zu 样本 (%.2f 秒)",
+                                                     exported, (float)exported / SAMPLE_RATE);
+                                        }
                                         // 分块发送，避免单帧过大
                                         const size_t CHUNK = STREAM_SEND_BUF_SIZE;
-                                        const uint8_t *ptr = (const uint8_t *)prebuf;
-                                        while (prebuf_bytes > 0) {
-                                            size_t to_send = (prebuf_bytes > CHUNK) ? CHUNK : prebuf_bytes;
-                                            websocket_client->sendBinary(ptr, to_send);
-                                            ptr += to_send;
-                                            prebuf_bytes -= to_send;
+                                        while (send_bytes > 0) {
+                                            size_t to_send = (send_bytes > CHUNK) ? CHUNK : send_bytes;
+                                            websocket_client->sendBinary(send_ptr, to_send);
+                                            send_ptr += to_send;
+                                            send_bytes -= to_send;
                                         }
-                                        ESP_LOGI(TAG, "预缓冲补发：%zu 样本 (%.2f 秒)",
-                                                 exported, (float)exported / SAMPLE_RATE);
                                     }
                                     free(prebuf);
                                 }
