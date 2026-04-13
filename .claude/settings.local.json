@@ -28,7 +28,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:help.aliyun.com)",
       "Bash(wc -c \"D:/ESP32Code/speech_commands_recognition_with_llm/server/system_prompt.md\" 2>/dev/null && xxd -l 64 \"D:/ESP32Code/speech_commands_recognition_with_llm/server/system_prompt.md\" 2>/dev/null || cat -A \"D:/ESP32Code/speech_commands_recognition_with_llm/server/system_prompt.md\" 2>/dev/null)",
-      "Bash(python -c \"import py_compile; py_compile.compile\\('server/config.py', doraise=True\\); py_compile.compile\\('server/modules/llm.py', doraise=True\\); py_compile.compile\\('server/core/orchestrator.py', doraise=True\\); py_compile.compile\\('server/main.py', doraise=True\\); print\\('All files compile OK'\\)\")"
+      "Bash(python -c \"import py_compile; py_compile.compile\\('server/config.py', doraise=True\\); py_compile.compile\\('server/modules/llm.py', doraise=True\\); py_compile.compile\\('server/core/orchestrator.py', doraise=True\\); py_compile.compile\\('server/main.py', doraise=True\\); print\\('All files compile OK'\\)\")",
+      "Bash(idf.py build:*)"
     ]
   }
 }

@@ -87,7 +87,7 @@ static const char *TAG = "语音识别"; // 日志标签
 // 调试阶段：改为你电脑的局域网 IP，如 ws://10.186.219.181:8888
 // 对接云端：改为云服务器地址，如 ws://your-server.com:8888
 // 改完重新编译烧录即可，仅首次烧录或 NVS 清除后生效
-#define WS_URI_DEFAULT "ws://10.186.219.181:8888"
+#define WS_URI_DEFAULT "ws://10.245.222.181:8888"
 
 // WiFi和WebSocket管理器
 static WiFiManager* wifi_manager = nullptr;

@@ -14,6 +14,7 @@ idf_component_register(SRCS
                        main.cc
                        bsp_board.cc
                        audio_manager.cc
+                       audio_playback_task.cc
                        wifi_manager.cc
                        websocket_client.cc
                        nvs_config.cc
