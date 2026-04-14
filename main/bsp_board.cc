@@ -222,7 +222,7 @@ esp_err_t bsp_get_feed_data(bool is_get_raw_channel, int16_t *buffer, int buffer
             // 🔊 应用麦克风增益（INMP441 灵敏度低，-48 dBFS 典型值，需要放大）
             // 32x 增益 ≈ +30 dB，将典型说话声从 0.4% 满量程提升到 ~12%
             // 如果声音过大失真，调小此值；如果仍然太小，可适当调大（最大不建议超过 64）
-            static const int32_t MIC_GAIN = 32;
+            static const int32_t MIC_GAIN = 8;
             int32_t sample = static_cast<int32_t>(buffer[i]) * MIC_GAIN;
 
             // 📦 限制在16位有符号整数范围内

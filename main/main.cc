@@ -676,16 +676,16 @@ extern "C" void app_main(void)
     ESP_LOGI(TAG, "正在初始化语音活动检测（VAD）...");
     
     // 创建VAD实例，使用更精确的参数控制
-    // VAD_MODE_2: 高灵敏度
+    // VAD_MODE_1: 中等灵敏度
     // 16000Hz采样率，30ms帧长度，最小语音时长200ms，最小静音时长600ms
-    vad_inst = vad_create_with_param(VAD_MODE_2, SAMPLE_RATE, 30, 200, 600);
+    vad_inst = vad_create_with_param(VAD_MODE_1, SAMPLE_RATE, 30, 200, 600);
     if (vad_inst == NULL) {
         ESP_LOGE(TAG, "创建VAD实例失败");
         return;
     }
     
     ESP_LOGI(TAG, "✓ VAD初始化成功");
-    ESP_LOGI(TAG, "  - VAD模式: 2 (高灵敏度)");
+    ESP_LOGI(TAG, "  - VAD模式: 1 (中等灵敏度)");
     ESP_LOGI(TAG, "  - 采样率: %d Hz", SAMPLE_RATE);
     ESP_LOGI(TAG, "  - 帧长度: 30 ms");
     ESP_LOGI(TAG, "  - 最小语音时长: 200 ms");
