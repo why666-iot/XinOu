@@ -77,6 +77,10 @@ static esp_err_t bsp_i2s_init(uint32_t sample_rate, int channel_format, int bits
     // 创建 I2S 通道配置
     // 设置为主模式，ESP32-S3 作为时钟源
     i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_PORT_RX, I2S_ROLE_MASTER);
+    // 增大 DMA 缓冲区（默认 6×240≈90ms），给预缓冲发送阻塞留出余量
+    // 8×480×2=7680字节≈240ms，足以覆盖 WebSocket 写入等待时间
+    chan_cfg.dma_desc_num = 8;
+    chan_cfg.dma_frame_num = 480;
     ret = i2s_new_channel(&chan_cfg, nullptr, &rx_handle);
     if (ret != ESP_OK)
     {
@@ -215,13 +219,11 @@ esp_err_t bsp_get_feed_data(bool is_get_raw_channel, int16_t *buffer, int buffer
         // 麦克风输出左对齐数据，进行信号电平调整
         for (int i = 0; i < samples; i++)
         {
-            // 当前使用原始信号电平（无增益）
-            // 测试表明原始电平已足够满足唤醒词检测需求
-            int32_t sample = static_cast<int32_t>(buffer[i]);
-
-            // 🔊 可选：应用2倍增益以提升信号强度（当前已禁用）
-            // 如果发现声音太小，可以取消下面这行的注释
-            // sample = sample * 2;
+            // 🔊 应用麦克风增益（INMP441 灵敏度低，-48 dBFS 典型值，需要放大）
+            // 32x 增益 ≈ +30 dB，将典型说话声从 0.4% 满量程提升到 ~12%
+            // 如果声音过大失真，调小此值；如果仍然太小，可适当调大（最大不建议超过 64）
+            static const int32_t MIC_GAIN = 32;
+            int32_t sample = static_cast<int32_t>(buffer[i]) * MIC_GAIN;
 
             // 📦 限制在16位有符号整数范围内
             if (sample > 32767)

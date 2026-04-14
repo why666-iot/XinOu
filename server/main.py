@@ -121,11 +121,15 @@ async def handle_connection(websocket) -> None:
 
                     if user_text:
                         prev_scene = scene  # 记住本轮场景
-                        # 流式发送 TTS 音频给 ESP32
-                        chunk_count = 0
-                        async for chunk in audio_gen:
-                            await websocket.send(chunk)
-                            chunk_count += 1
+
+                        # 等待 LLM 流式输出完成（audio_gen 现在只收集 reply_parts）
+                        async for _ in audio_gen:
+                            pass  # 空循环，等待 LLM 完成
+
+                        # TTS 已禁用，发送静音块代替音频
+                        # 必须发送至少一个音频块，否则 ESP32 的 isStreamingActive() 为 false
+                        silence = b'\x00' * 3200  # 0.1秒静音 (16000Hz * 2bytes * 0.1s)
+                        await websocket.send(silence)
 
                         # 发送 ping 作为音频结束信号
                         # ESP32 的 AudioManager 收到 ping 后触发 finishStreamingPlayback()
@@ -135,7 +139,7 @@ async def handle_connection(websocket) -> None:
                         full_reply = "".join(reply_parts)
                         history.append({"role": "user", "content": user_text})
                         history.append({"role": "assistant", "content": full_reply})
-                        print(f"[完成] 发送 {chunk_count} 个音频块，回复：{full_reply}")
+                        print(f"[完成] TTS已禁用，回复：{full_reply}")
                     else:
                         # ASR 未识别到语音，发送静音块 + ping 让 ESP32 继续工作
                         # 必须发送至少一个音频块，否则 ESP32 的 isStreamingActive() 为 false，ping 会被忽略

@@ -676,20 +676,20 @@ extern "C" void app_main(void)
     ESP_LOGI(TAG, "正在初始化语音活动检测（VAD）...");
     
     // 创建VAD实例，使用更精确的参数控制
-    // VAD_MODE_1: 中等灵敏度
-    // 16000Hz采样率，30ms帧长度，最小语音时长200ms，最小静音时长1000ms
-    vad_inst = vad_create_with_param(VAD_MODE_1, SAMPLE_RATE, 30, 200, 1000);
+    // VAD_MODE_2: 高灵敏度
+    // 16000Hz采样率，30ms帧长度，最小语音时长200ms，最小静音时长600ms
+    vad_inst = vad_create_with_param(VAD_MODE_2, SAMPLE_RATE, 30, 200, 600);
     if (vad_inst == NULL) {
         ESP_LOGE(TAG, "创建VAD实例失败");
         return;
     }
     
     ESP_LOGI(TAG, "✓ VAD初始化成功");
-    ESP_LOGI(TAG, "  - VAD模式: 1 (中等灵敏度)");
+    ESP_LOGI(TAG, "  - VAD模式: 2 (高灵敏度)");
     ESP_LOGI(TAG, "  - 采样率: %d Hz", SAMPLE_RATE);
     ESP_LOGI(TAG, "  - 帧长度: 30 ms");
     ESP_LOGI(TAG, "  - 最小语音时长: 200 ms");
-    ESP_LOGI(TAG, "  - 最小静音时长: 1000 ms");
+    ESP_LOGI(TAG, "  - 最小静音时长: 800 ms");
 
     // ⑧ 加载唤醒词检测模型
     ESP_LOGI(TAG, "正在加载唤醒词检测模型...");
@@ -995,11 +995,17 @@ extern "C" void app_main(void)
                 if (is_realtime_streaming && websocket_client != nullptr && websocket_client->isConnected())
                 {
                     size_t bytes_to_add = samples * sizeof(int16_t);
-                    // 把当前音频块追加到发送缓冲区
-                    if (stream_send_buf_pos + bytes_to_add <= STREAM_SEND_BUF_SIZE) {
-                        memcpy(stream_send_buf + stream_send_buf_pos, processed_audio, bytes_to_add);
-                        stream_send_buf_pos += bytes_to_add;
+                    // 新帧放不下时，先把已有数据发出再接收新帧，避免帧被静默丢弃
+                    if (stream_send_buf_pos + bytes_to_add > STREAM_SEND_BUF_SIZE) {
+                        if (stream_send_buf_pos > 0) {
+                            websocket_client->sendBinary(stream_send_buf, stream_send_buf_pos);
+                            ESP_LOGD(TAG, "批量发送(缓冲区满): %zu 字节", stream_send_buf_pos);
+                            stream_send_buf_pos = 0;
+                        }
                     }
+                    // 把当前音频块追加到发送缓冲区
+                    memcpy(stream_send_buf + stream_send_buf_pos, processed_audio, bytes_to_add);
+                    stream_send_buf_pos += bytes_to_add;
                     // 缓冲区攒满了，一次性发出
                     if (stream_send_buf_pos >= STREAM_SEND_BUF_SIZE) {
                         websocket_client->sendBinary(stream_send_buf, stream_send_buf_pos);
@@ -1123,7 +1129,7 @@ extern "C" void app_main(void)
                             ESP_LOGI(TAG, "首次对话：检测到说话，开始实时传输...");
                         }
 
-                        // 🔙 补发预缓冲：把 VAD 触发前已录入缓冲区的音频发出去
+                        // 补发预缓冲：把 VAD 触发前已录入缓冲区的音频发出去
                         // 避免首字/前几帧因 VAD 延迟而丢失
                         // 连续对话模式下只发最后 0.5 秒，避免大量静音污染 ASR
                         if (websocket_client != nullptr && websocket_client->isConnected()) {
@@ -1255,9 +1261,9 @@ extern "C" void app_main(void)
         else if (current_state == STATE_WAITING_RESPONSE)
         {
             // ⏳ 等待状态：等待服务器的AI回复
-            
-            // 音频会通过WebSocket流式接收并播放
-            // 这里只需要检查播放是否完成
+
+            // TTS 已禁用，收到 ping 后直接进入连续对话
+            // 音频播放逻辑已注释
             if (audio_manager->isResponsePlayed())
             {
                 // 🔁 AI回复完毕，进入连续对话模式

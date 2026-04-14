@@ -166,26 +166,15 @@ async def process(
     messages.extend(recent)
     messages.append({"role": "user", "content": user_text})
 
-    # ── Step 4: LLM 流式输出 → 句子切分 → TTS 流式合成 ────────
+    # ── Step 4: LLM 流式输出（TTS 已禁用）────────
     reply_parts: list[str] = []
 
     async def audio_gen() -> AsyncIterator[bytes]:
-        sentence_buf = ""
+        """空生成器，TTS 已禁用"""
         async for token in llm.stream_chat(messages):
-            sentence_buf += token
             reply_parts.append(token)
-
-            sentence, sentence_buf = _pop_sentence(sentence_buf)
-            if sentence:
-                print(f"[LLM→TTS] {sentence}")
-                async for chunk in tts.synthesize_stream(sentence):
-                    yield chunk
-
-        # 处理末尾残留的文字（最后一句可能没有标点）
-        tail = sentence_buf.strip()
-        if tail:
-            print(f"[LLM→TTS] {tail}")
-            async for chunk in tts.synthesize_stream(tail):
-                yield chunk
+        # 不再生成音频，直接返回
+        return
+        yield  # 使其成为生成器（永远不会执行到）
 
     return user_text, scene, reply_parts, audio_gen()
