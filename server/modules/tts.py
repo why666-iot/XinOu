@@ -1,5 +1,5 @@
 """
-TTS 模块：阿里云 CosyVoice v2 流式语音合成
+TTS 模块：阿里云 CosyVoice 流式语音合成
 
 输入：文字字符串
 输出：16kHz 16bit mono PCM 音频字节流（与 ESP32 AudioManager 直接兼容）

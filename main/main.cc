@@ -210,7 +210,7 @@ static void on_websocket_event(const WebSocketClient::EventData& event)
 
     case WebSocketClient::EventType::DATA_BINARY:
     {
-        ESP_LOGI(TAG, "收到WebSocket二进制数据，长度: %zu 字节", event.data_len);
+        ESP_LOGD(TAG, "收到WebSocket二进制数据，长度: %zu 字节", event.data_len);
 
         // 使用AudioManager处理WebSocket音频数据
         if (audio_manager != nullptr && event.data_len > 0 && current_state == STATE_WAITING_RESPONSE) {
@@ -677,8 +677,8 @@ extern "C" void app_main(void)
     
     // 创建VAD实例，使用更精确的参数控制
     // VAD_MODE_1: 中等灵敏度
-    // 16000Hz采样率，30ms帧长度，最小语音时长200ms，最小静音时长1000ms
-    vad_inst = vad_create_with_param(VAD_MODE_1, SAMPLE_RATE, 30, 200, 1000);
+    // 16000Hz采样率，30ms帧长度，最小语音时长200ms，最小静音时长400ms
+    vad_inst = vad_create_with_param(VAD_MODE_1, SAMPLE_RATE, 30, 200, 400);
     if (vad_inst == NULL) {
         ESP_LOGE(TAG, "创建VAD实例失败");
         return;
@@ -689,7 +689,7 @@ extern "C" void app_main(void)
     ESP_LOGI(TAG, "  - 采样率: %d Hz", SAMPLE_RATE);
     ESP_LOGI(TAG, "  - 帧长度: 30 ms");
     ESP_LOGI(TAG, "  - 最小语音时长: 200 ms");
-    ESP_LOGI(TAG, "  - 最小静音时长: 1000 ms");
+    ESP_LOGI(TAG, "  - 最小静音时长: 400 ms");
 
     // ⑧ 加载唤醒词检测模型
     ESP_LOGI(TAG, "正在加载唤醒词检测模型...");
@@ -995,11 +995,17 @@ extern "C" void app_main(void)
                 if (is_realtime_streaming && websocket_client != nullptr && websocket_client->isConnected())
                 {
                     size_t bytes_to_add = samples * sizeof(int16_t);
-                    // 把当前音频块追加到发送缓冲区
-                    if (stream_send_buf_pos + bytes_to_add <= STREAM_SEND_BUF_SIZE) {
-                        memcpy(stream_send_buf + stream_send_buf_pos, processed_audio, bytes_to_add);
-                        stream_send_buf_pos += bytes_to_add;
+                    // 新帧放不下时，先把已有数据发出再接收新帧，避免帧被静默丢弃
+                    if (stream_send_buf_pos + bytes_to_add > STREAM_SEND_BUF_SIZE) {
+                        if (stream_send_buf_pos > 0) {
+                            websocket_client->sendBinary(stream_send_buf, stream_send_buf_pos);
+                            ESP_LOGD(TAG, "批量发送(缓冲区满): %zu 字节", stream_send_buf_pos);
+                            stream_send_buf_pos = 0;
+                        }
                     }
+                    // 把当前音频块追加到发送缓冲区
+                    memcpy(stream_send_buf + stream_send_buf_pos, processed_audio, bytes_to_add);
+                    stream_send_buf_pos += bytes_to_add;
                     // 缓冲区攒满了，一次性发出
                     if (stream_send_buf_pos >= STREAM_SEND_BUF_SIZE) {
                         websocket_client->sendBinary(stream_send_buf, stream_send_buf_pos);
@@ -1123,10 +1129,11 @@ extern "C" void app_main(void)
                             ESP_LOGI(TAG, "首次对话：检测到说话，开始实时传输...");
                         }
 
-                        // 🔙 补发预缓冲：把 VAD 触发前已录入缓冲区的音频发出去
-                        // 避免首字/前几帧因 VAD 延迟而丢失
-                        // 连续对话模式下只发最后 0.5 秒，避免大量静音污染 ASR
-                        if (websocket_client != nullptr && websocket_client->isConnected()) {
+                        // 补发预缓冲：仅在连续对话模式下启动
+                        // 唤醒后首句跳过，避免把唤醒词音频录进去
+                        // 连续对话模式只发最后 0.5 秒，避免大量静音污染 ASR
+                        if (is_continuous_conversation &&
+                            websocket_client != nullptr && websocket_client->isConnected()) {
                             size_t prebuf_samples = audio_manager->getRecordingLength();
                             if (prebuf_samples > 0) {
                                 int16_t *prebuf = (int16_t *)malloc(prebuf_samples * sizeof(int16_t));
@@ -1134,20 +1141,20 @@ extern "C" void app_main(void)
                                     size_t exported = 0;
                                     audio_manager->exportRecordingData(prebuf, exported);
                                     if (exported > 0) {
-                                        // 连续对话模式：裁剪预缓冲，只发送最后 PREBUF_MAX_SAMPLES
+                                        // 只发送最后 PREBUF_MAX_SAMPLES，避免大量静音污染 ASR
                                         const uint8_t *send_ptr;
                                         size_t send_bytes;
-                                        if (is_continuous_conversation && exported > PREBUF_MAX_SAMPLES) {
+                                        if (exported > PREBUF_MAX_SAMPLES) {
                                             size_t skip = exported - PREBUF_MAX_SAMPLES;
                                             send_ptr = (const uint8_t *)(prebuf + skip);
                                             send_bytes = PREBUF_MAX_SAMPLES * sizeof(int16_t);
-                                            ESP_LOGI(TAG, "预缓冲裁剪：%zu → %zu 样本 (%.2f → %.2f 秒)",
+                                            ESP_LOGI(TAG, "连续对话预缓冲（裁剪）：%zu → %zu 样本 (%.2f → %.2f 秒)",
                                                      exported, (size_t)PREBUF_MAX_SAMPLES,
                                                      (float)exported / SAMPLE_RATE, PREBUF_MAX_SECONDS);
                                         } else {
                                             send_ptr = (const uint8_t *)prebuf;
                                             send_bytes = exported * sizeof(int16_t);
-                                            ESP_LOGI(TAG, "预缓冲补发：%zu 样本 (%.2f 秒)",
+                                            ESP_LOGI(TAG, "连续对话预缓冲补发：%zu 样本 (%.2f 秒)",
                                                      exported, (float)exported / SAMPLE_RATE);
                                         }
                                         // 分块发送，避免单帧过大
@@ -1162,6 +1169,8 @@ extern "C" void app_main(void)
                                     free(prebuf);
                                 }
                             }
+                        } else if (!is_continuous_conversation) {
+                            ESP_LOGI(TAG, "唤醒后首句，跳过预缓冲补发");
                         }
                     }
                     
