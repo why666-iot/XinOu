@@ -194,7 +194,7 @@ async def main() -> None:
     print(f"  LLM : {config.LLM_MODEL}  ({config.LLM_BASE_URL})")
     print(f"  TTS : {config.TTS_MODEL} / {config.TTS_VOICE}")
     print("=" * 55)
-    print("  等待 ESP32 连接...\n")
+    print("  此版本为无tts状态，仅供调试收音效果、ASR使用。等待 ESP32 连接...\n")
 
     async with websockets.serve(handle_connection, config.WS_HOST, config.WS_PORT):
         await asyncio.Future()  # 永久运行
