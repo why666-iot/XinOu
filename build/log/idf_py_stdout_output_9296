@@ -1,0 +1,121 @@
+Command: ninja app-flash
+[1/7] Building CXX object esp-idf/main/CMakeFiles/__idf_main.dir/main.cc.obj
+D:/ESP32Code/speech_commands_recognition_with_llm/main/main.cc:163:19: warning: 'command_timeout_start' defined but not used [-Wunused-variable]
+  163 | static TickType_t command_timeout_start = 0;
+      |                   ^~~~~~~~~~~~~~~~~~~~~
+[2/7] Linking C static library esp-idf\main\libmain.a
+[3/7] Generating esp-idf/esp_system/ld/sections.ld
+[4/7] Linking CXX executable speech_commands_recognition.elf
+[5/7] Generating binary image from built executable
+esptool.py v4.12.dev1
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+Generated D:/ESP32Code/speech_commands_recognition_with_llm/build/speech_commands_recognition.bin
+[6/7] C:\Windows\system32\cmd.exe /C "cd /D D:\ESP32Code\speech_commands_recognition_with_llm\build\esp-idf\esptool_py && D:\Espressif\python_env\idf5.5_py3.10_env\Scripts\python.exe D:/Espressif/frameworks/esp-idf-v5.5/components/partition_table/check_sizes.py --offset 0x8000 partition --type app D:/ESP32Code/speech_commands_recognition_with_llm/build/partition_table/partition-table.bin D:/ESP32Code/speech_commands_recognition_with_llm/build/speech_commands_recognition.bin"
+speech_commands_recognition.bin binary size 0x1ff440 bytes. Smallest app partition is 0x226000 bytes. 0x26bc0 bytes (7%) free.
+[6/7] C:\Windows\system32\cmd.exe /C "cd /D D:\Espressif\frameworks\esp-idf-v5.5\components\esptool_py && D:\Espressif\tools\cmake\3.30.2\bin\cmake.exe -D IDF_PATH=D:/Espressif/frameworks/esp-idf-v5.5 -D SERIAL_TOOL=D:/Espressif/python_env/idf5.5_py3.10_env/Scripts/python.exe;;D:/Espressif/frameworks/esp-idf-v5.5/components/esptool_py/esptool/esptool.py;--chip;esp32s3 -D SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@app-flash_args -D WORKING_DIRECTORY=D:/ESP32Code/speech_commands_recognition_with_llm/build -P D:/Espressif/frameworks/esp-idf-v5.5/components/esptool_py/run_serial_tool.cmake"
+esptool.py --chip esp32s3 -p com17 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 8MB 0x10000 speech_commands_recognition.bin
+esptool.py v4.12.dev1
+Serial port com17
+Connecting...
+Failed to get PID of a device on com17, using standard reset sequence.
+.
+Chip is ESP32-S3 (QFN56) (revision v0.2)
+Features: WiFi, BLE, Embedded PSRAM 8MB (AP_3v3)
+Crystal is 40MHz
+MAC: e8:f6:0a:85:4c:00
+Uploading stub...
+Running stub...
+Stub running...
+Changing baud rate to 460800
+Changed.
+Configuring flash size...
+Flash will be erased from 0x00010000 to 0x0020ffff...
+Compressed 2094144 bytes to 1318475...
+Writing at 0x00010000... (1 %)
+Writing at 0x0001bf88... (2 %)
+Writing at 0x000292b5... (3 %)
+Writing at 0x00030191... (4 %)
+Writing at 0x0003560c... (6 %)
+Writing at 0x00039aa3... (7 %)
+Writing at 0x0003ebca... (8 %)
+Writing at 0x0004388e... (9 %)
+Writing at 0x000489bc... (11 %)
+Writing at 0x0004d1df... (12 %)
+Writing at 0x00051ffb... (13 %)
+Writing at 0x00056b3e... (14 %)
+Writing at 0x0005e394... (16 %)
+Writing at 0x00062a49... (17 %)
+Writing at 0x00067a57... (18 %)
+Writing at 0x0006c0ea... (19 %)
+Writing at 0x00070cf1... (20 %)
+Writing at 0x00076177... (22 %)
+Writing at 0x0007ac0b... (23 %)
+Writing at 0x0007f664... (24 %)
+Writing at 0x000857e0... (25 %)
+Writing at 0x00089db3... (27 %)
+Writing at 0x0008eab7... (28 %)
+Writing at 0x0009403d... (29 %)
+Writing at 0x00098b65... (30 %)
+Writing at 0x0009e478... (32 %)
+Writing at 0x000a2d18... (33 %)
+Writing at 0x000a8a48... (34 %)
+Writing at 0x000af3ea... (35 %)
+Writing at 0x000b531d... (37 %)
+Writing at 0x000bab4e... (38 %)
+Writing at 0x000c0368... (39 %)
+Writing at 0x000c6e00... (40 %)
+Writing at 0x000cf9e1... (41 %)
+Writing at 0x000da650... (43 %)
+Writing at 0x000dfba9... (44 %)
+Writing at 0x000e5aa5... (45 %)
+Writing at 0x000ec52e... (46 %)
+Writing at 0x000f267b... (48 %)
+Writing at 0x000f8579... (49 %)
+Writing at 0x000fe74e... (50 %)
+Writing at 0x0010427d... (51 %)
+Writing at 0x00109c76... (53 %)
+Writing at 0x0010f73f... (54 %)
+Writing at 0x00114aee... (55 %)
+Writing at 0x0011acce... (56 %)
+Writing at 0x00120dd9... (58 %)
+Writing at 0x00127cf8... (59 %)
+Writing at 0x00144100... (60 %)
+Writing at 0x0014e7a4... (61 %)
+Writing at 0x0015455e... (62 %)
+Writing at 0x0015a5eb... (64 %)
+Writing at 0x0016030d... (65 %)
+Writing at 0x00165dfe... (66 %)
+Writing at 0x0016ba06... (67 %)
+Writing at 0x00171833... (69 %)
+Writing at 0x001779e4... (70 %)
+Writing at 0x0017d84d... (71 %)
+Writing at 0x00183493... (72 %)
+Writing at 0x001897e4... (74 %)
+Writing at 0x0018f681... (75 %)
+Writing at 0x00195349... (76 %)
+Writing at 0x0019a4bf... (77 %)
+Writing at 0x0019f589... (79 %)
+Writing at 0x001a5009... (80 %)
+Writing at 0x001aa5b3... (81 %)
+Writing at 0x001af9c7... (82 %)
+Writing at 0x001b4f65... (83 %)
+Writing at 0x001baec3... (85 %)
+Writing at 0x001c0765... (86 %)
+Writing at 0x001c646e... (87 %)
+Writing at 0x001cc010... (88 %)
+Writing at 0x001d1851... (90 %)
+Writing at 0x001d73b9... (91 %)
+Writing at 0x001e07f2... (92 %)
+Writing at 0x001edffb... (93 %)
+Writing at 0x001f44e5... (95 %)
+Writing at 0x001fa77e... (96 %)
+Writing at 0x00200a17... (97 %)
+Writing at 0x00207268... (98 %)
+Writing at 0x0020c324... (100 %)
+Wrote 2094144 bytes (1318475 compressed) at 0x00010000 in 30.3 seconds (effective 553.1 kbit/s)...
+Hash of data verified.
+
+Leaving...
+Hard resetting via RTS pin...

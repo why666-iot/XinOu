@@ -123,7 +123,10 @@ esp_err_t WiFiManager::connect() {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));      // 设为客户端模式
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));  // 应用配置
     ESP_ERROR_CHECK(esp_wifi_start());                      // 启动WiFi
-    
+
+    // 🔋 禁用WiFi省电模式，避免beacon timeout
+    esp_wifi_set_ps(WIFI_PS_NONE);
+
     ESP_LOGI(TAG, "📶 WiFi初始化完成，正在连接到 %s", ssid_.c_str());
     
     // ⏳ 等待连接结果（会阻塞在这里直到连接成功或失败）

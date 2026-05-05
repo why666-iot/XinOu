@@ -12,3 +12,6 @@ openai>=1.0.0
 
 # 数值计算（音频处理，asr 模块写 WAV 时用到 wave 标准库，无需 numpy）
 # numpy>=1.24.0  # Phase 3 记忆系统可能用到，暂不强制安装
+
+# mDNS 局域网服务发现
+zeroconf>=0.130.0

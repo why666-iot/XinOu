@@ -55,8 +55,13 @@ def _load_all() -> None:
     print(f"[提示词] 已加载 {len(loaded_scenes)}/{len(VALID_SCENES)} 个场景，共 {len(_cache)} 个文件")
 
 
+def get_unified_prompt() -> str:
+    """返回统一系统提示词（含角色设定 + 所有场景指南 + 两阶段输出格式）"""
+    return _cache.get("unified", "")
+
+
 def get_classifier_prompt() -> str:
-    """返回分类器系统提示词"""
+    """返回分类器系统提示词（已废弃，保留以备回滚）"""
     return _cache.get("classifier", "")
 
 

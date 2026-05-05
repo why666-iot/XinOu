@@ -56,9 +56,9 @@
 │   STATE_RECORDING   │  ← 同时做三件事：
 │                     │    1. VAD 检测说话状态
 │                     │    2. 实时将音频块流式发送给服务器（WebSocket）
-│                     │    3. MultiNet 本地检测命令词
+│                     │    3. VAD 检测说话状态
 └─────────┬───────────┘
-          │ VAD 检测到说话结束（或命令词触发）
+          │ VAD 检测到说话结束
           ▼
 ┌─────────────────────┐
 │ STATE_WAITING_RESPONSE │  ← 等待服务器通过 WebSocket 推回音频流
@@ -79,7 +79,6 @@ bsp_get_feed_data()
     ├──► WakeNet.detect()         [STATE_WAITING_WAKEUP]
     │
     ├──► vad_process()            [STATE_RECORDING]
-    ├──► MultiNet.detect()        [STATE_RECORDING] → 本地命令词
     └──► WebSocketClient.sendBinary() → 服务器       → AI 对话
 
 服务器 ──► WebSocket DATA_BINARY ──► AudioManager.addStreamingAudioChunk()
@@ -190,7 +189,7 @@ speech_commands_recognition_with_llm/
 │   │   └── custom.h               #   自定义音（可替换）
 │   │
 │   └── idf_component.yml          # 组件依赖声明
-│                                  #   espressif/esp-sr ^2.1.0（WakeNet/MultiNet/VAD）
+│                                  #   espressif/esp-sr ^2.1.0（WakeNet/VAD）
 │                                  #   espressif/esp_websocket_client 1.4.0
 │
 └── server/
@@ -245,7 +244,7 @@ speech_commands_recognition_with_llm/
 | `{"event":"recording_started"}` | JSON 文本帧 | 唤醒成功或连续对话回到录音状态时 |
 | 音频数据 | WebSocket 二进制帧，16kHz 16bit PCM | STATE_RECORDING 期间，VAD 检测到说话后实时流式发送 |
 | `{"event":"recording_ended"}` | JSON 文本帧 | VAD 检测到说话停止 |
-| `{"event":"recording_cancelled"}` | JSON 文本帧 | ESP32 本地命令词命中，取消本次 AI 对话 |
+| `{"event":"recording_cancelled"}` | JSON 文本帧 | ESP32 录音过短或用户未说话，取消本次录音 |
 
 ### 服务器 → ESP32
 
@@ -256,28 +255,12 @@ speech_commands_recognition_with_llm/
 
 ---
 
-## 本地命令词（MultiNet7，离线识别）
-
-以下命令词在**无需联网**的情况下本地识别，命中后不发起 AI 对话：
-
-| 命令词 | ID | 触发动作 |
-|--------|-----|----------|
-| 帮我关灯 | 308 | 关闭 LED（GPIO21） |
-| 帮我开灯 | 309 | 点亮 LED（GPIO21） |
-| 拜拜 | 314 | 播放再见音，返回等待唤醒 |
-| 自定义 | 315 | 可替换为其他命令 |
-
-命令词识别**与录音同步进行**（说话过程中实时检测），说话结束前命中即可触发。
-
----
-
 ## 编译与烧录
 
 ```bash
-# 1. 首次配置（选择唤醒词和命令词模型）
+# 1. 首次配置（选择唤醒词模型）
 idf.py menuconfig
 # ESP Speech Recognition → Load Multiple Wake Words → WN9_NIHAOXIAOZHI_TTS
-# ESP Speech Recognition → 中文命令词识别 → MULTINET7_QUANT
 
 # 2. 编译
 idf.py build
@@ -316,7 +299,7 @@ idf.py flash monitor
 
 | 版本 | 状态 | 主要内容 |
 |------|------|----------|
-| v0.1.0 | ✅ 完成 | 基础语音助手：唤醒词 + 连续对话 + 本地命令词，WiFi 硬编码，本地服务器 |
+| v0.1.0 | ✅ 完成 | 基础语音助手：唤醒词 + 连续对话，WiFi 硬编码，本地服务器 |
 | v0.2.0 | ✅ 当前 | BLE 配网：NVS 存储凭据，nRF Connect / 小程序配网，支持换网络重配 |
 | v0.3.0 | 规划中 | 云端服务器部署，小程序完整配网 UI，产品化独立运行 |
 | v1.0.0 | 规划中 | 完整产品：扫码→配网→对话，长期记忆，情感陪伴人格 |

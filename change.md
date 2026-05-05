@@ -248,3 +248,146 @@ FreeRTOS 队列（64 槽缓冲区）
 
 **未修改文件：**
 - `main/main.cc`：实时流式发送逻辑保持原样，低延迟不受影响
+
+---
+
+## 2026-05-04
+
+### 优化：流式播放缓冲区改为 PSRAM 预分配环形缓冲区
+
+**影响文件：**
+- `main/audio_manager.h`
+- `main/audio_manager.cc`
+- `main/audio_playback_task.cc`
+
+**问题描述：**
+
+实测日志出现 `音频队列已满，丢弃 3344 字节` 警告，开始播放约 2 秒后队列即已满载：
+
+```
+I (81533) AudioManager: 开始流式音频播放
+W (83503) AudioManager: 音频队列已满，丢弃 3344 字节
+W (83503) AudioManager: 音频队列已满，丢弃 1440 字节
+W (83563) AudioManager: 音频队列已满，丢弃 2880 字节
+```
+
+**根本原因：**
+
+在局域网环境下，服务端发送 TTS 音频的速度远快于实时播放速度（网络传输 < 1ms，而播放每块需要 100ms 物理时间），导致 64 槽队列迅速堆满。同时，每块音频都经历 `malloc/free`，多轮对话后堆碎片化加剧。
+
+**修改方案：预分配环形缓冲区**
+
+用一块从 PSRAM 预分配的大缓冲区替换 64 槽队列 + per-chunk malloc，彻底消除溢出和碎片化问题。
+
+| 对比项 | 旧方案（队列 + malloc） | 新方案（环形缓冲区） |
+|---|---|---|
+| 缓冲区大小 | 64 × ~3200 B ≈ 200KB / 6.4s | 320KB / 10s（PSRAM） |
+| 内存管理 | 每块 malloc/free，多轮后碎片化 | 一次性预分配，零碎片 |
+| 线程安全 | FreeRTOS 队列内置 | 互斥锁（xSemaphoreCreateMutex） |
+| 满时行为 | 丢弃新块，打印警告 | 同上，但实际发生概率极低 |
+
+**具体修改内容：**
+
+#### `audio_manager.h`
+- 移除 `QueueHandle_t audio_queue`、`AUDIO_QUEUE_SIZE`
+- 移除 `#include "freertos/queue.h"`，替换为 `#include "freertos/semphr.h"`
+- 新增环形缓冲区字段：
+  ```cpp
+  uint8_t* ring_buf;               // 预分配缓冲区（PSRAM）
+  size_t ring_buf_total;           // 总大小（320KB）
+  size_t ring_write_pos;           // 写入位置
+  size_t ring_read_pos;            // 读取位置
+  volatile size_t ring_data_len;   // 当前有效字节数
+  SemaphoreHandle_t ring_mutex;    // 读写互斥锁
+  static const size_t RING_BUF_SIZE  = 320 * 1024;
+  static const size_t PLAYBACK_CHUNK = 3200;
+  ```
+
+#### `audio_manager.cc`
+- 新增 `#include "esp_heap_caps.h"`
+- `init()`：优先 `heap_caps_malloc(RING_BUF_SIZE, MALLOC_CAP_SPIRAM)`，PSRAM 不足自动降级内部 RAM；创建互斥锁
+- `deinit()`：删除互斥锁，释放环形缓冲区
+- `startStreamingPlayback()`：持锁重置 `ring_write_pos / ring_read_pos / ring_data_len`
+- `addStreamingAudioChunk()`：持锁写入，支持绕回（两段 memcpy），空间不足时丢弃并打印警告
+- `finishStreamingPlayback()`：超时等待上限从 10s 提升到 30s，留足 10s 音频播放余量
+
+#### `audio_playback_task.cc`
+- 每轮持锁从环形缓冲区读取最多 `PLAYBACK_CHUNK` 字节到**栈上临时缓冲区**，释放锁后再调用 `bsp_play_audio_stream()`
+- 缓冲区空但未完成 → `vTaskDelay(5ms)` 让出 CPU
+- 缓冲区空且 `streaming_finished` → 退出
+
+**效果：**
+- 消除 `音频队列已满` 警告，10 秒以内的 TTS 音频不再有任何丢弃
+- 消除多轮对话后的堆碎片化
+- 锁持有时间极短（仅 memcpy 期间），对接收侧无影响
+
+---
+
+### 优化：LLM 双阶调用改为单次流式调用（内联场景分类）
+
+**影响文件：**
+- `server/prompts/unified.txt`（新建）
+- `server/modules/prompt_loader.py`
+- `server/modules/llm.py`
+- `server/core/orchestrator.py`
+- `server/main.py`
+
+**问题描述：**
+
+旧架构每轮对话调用两次 LLM：
+1. 非流式调用分类器（~0.3-0.5s 延迟）→ 获取场景 ID
+2. 再流式调用主模型 → 生成回复
+
+分类调用本身耗时、结果质量有限（独立判断不如结合上下文），且代码复杂（粘滞逻辑、置信度阈值、上下文累积等 ~130 行）。
+
+**修改方案：单次流式调用 + 提示词内联场景分类**
+
+将场景选择逻辑内嵌到 system prompt，要求 LLM 在一次流式调用中先输出场景标签再输出回复，流式解析器负责过滤标签。
+
+```
+LLM 输出示例：
+<scene>work/pressure</scene>
+嗯，今天加班又很晚啊？听起来最近真的很累。你是一直这么忙还是最近突然压力大了？
+```
+
+**具体修改内容：**
+
+#### `server/prompts/unified.txt`（新建）
+合并 `base.txt` + 9 个场景提示词 + 两阶段格式指令，要求 LLM 第一行输出 `<scene>场景ID</scene>`，后续输出正常回复。
+
+#### `server/modules/llm.py`
+删除 `classify_scene()` 函数及相关导入（`json`、`re`、`prompt_loader`）。
+
+#### `server/modules/prompt_loader.py`
+新增 `get_unified_prompt()` 函数，加载并返回 `unified.txt` 内容。
+
+#### `server/core/orchestrator.py`
+完全重写：
+- 删除 `_classify_with_stickiness()`、粘滞常量、`classify_context` 参数
+- `process()` 签名简化为 `(pcm_bytes, history)`，返回 `(user_text, reply_parts, audio_gen)`
+- `audio_gen()` 内部新增 `<scene>` 标签解析状态机：
+  - 累积 token 直到遇到 `</scene>` → 提取场景 ID 打印日志，不送 TTS
+  - 超过 80 字未找到 `</scene>` → 兜底，直接当正文处理
+  - 之后所有 token 走正常句子切分 → TTS
+
+#### `server/main.py`
+- 删除 `prev_scene`、`classify_context` 变量
+- `orchestrator.process()` 调用更新为新签名
+
+**效果：**
+- 每轮对话减少一次 LLM API 调用，首字延迟降低约 0.3-0.5s
+- 场景判断结合完整对话上下文，准确率更高
+- 代码量减少约 130 行（粘滞逻辑全部删除）
+
+---
+
+### 优化：addRecordingData 改用 memcpy
+
+**影响文件：** `main/audio_manager.cc`
+
+**修改内容：**
+将 `addRecordingData()` 中逐样本循环写入改为分段 `memcpy`：
+- 数据不跨越缓冲区末尾时：单次 memcpy
+- 数据跨越末尾时：两段 memcpy（尾部 + 头部）
+
+逻辑等价，代码更规范，减少不必要的函数调用开销。

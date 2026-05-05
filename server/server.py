@@ -386,10 +386,10 @@ class WebSocketAudioServer:
                             print(f"⚠️ [{client_ip}] 未启用AI模型，无法生成响应")
 
                     elif event == "recording_cancelled":
-                        print(f"⚠️ [{client_ip}] 录音取消（ESP32本地命令词处理）")
+                        print(f"⚠️ [{client_ip}] 录音取消（ESP32录音过短或用户未说话）")
                         client_state["is_recording"] = False
                         client_state["audio_buffer"] = bytearray()
-                        # 关闭LLM连接，避免悬挂会话
+                        # Close LLM connection to avoid hanging session
                         if client_state["realtime_client"]:
                             try:
                                 if client_state["message_task"]:

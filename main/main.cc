@@ -6,8 +6,7 @@
  * 1. 语音唤醒 - 支持"你好小智"唤醒词，随时待命
  * 2. 连续对话 - 无需重复唤醒词，可以进行多轮对话
  * 3. AI对话 - 接入大语言模型，理解自然语言并生成智能回复
- * 4. 本地控制 - 内置"开灯"、"关灯"等命令词，快速响应
- * 5. 实时传输 - 一边说话一边传输，降低响应延迟
+ * 4. 实时传输 - 一边说话一边传输，降低响应延迟
  *
  * 🔧 硬件配置（小智AI标准接线）：
  * ┌─────────────────────────────────────────────────┐
@@ -30,7 +29,6 @@
  *
  * 🤖 AI模型说明：
  * - 唤醒词检测：WakeNet（"你好小智"）- 本地运行，低功耗
- * - 命令词识别：MultiNet（中文命令）- 本地运行，快速响应
  * - 对话理解：通过WebSocket连接云端大语言模型
  */
 
@@ -47,10 +45,6 @@ extern "C"
 #include "esp_timer.h"              // ESP定时器，用于获取时间戳
 #include "esp_wn_iface.h"           // 唤醒词检测接口
 #include "esp_wn_models.h"          // 唤醒词模型管理
-#include "esp_mn_iface.h"           // 命令词识别接口
-#include "esp_mn_models.h"          // 命令词模型管理
-#include "esp_mn_speech_commands.h" // 命令词配置
-#include "esp_process_sdkconfig.h"  // sdkconfig处理函数
 #include "esp_vad.h"                // VAD接口
 #include "esp_nsn_iface.h"          // 噪音抑制接口
 #include "esp_nsn_models.h"         // 噪音抑制模型
@@ -58,14 +52,15 @@ extern "C"
 #include "bsp_board.h"              // 板级支持包，INMP441麦克风驱动
 #include "esp_log.h"                // ESP日志系统
 #include "mock_voices/hi.h"         // 欢迎音频数据文件
-#include "mock_voices/ok.h"         // 确认音频数据文件
 #include "mock_voices/bye.h"        // 再见音频数据文件
-#include "mock_voices/custom.h"     // 自定义音频数据文件
 #include "driver/gpio.h"            // GPIO驱动
 #include "nvs_flash.h"              // NVS存储
 #include "esp_task_wdt.h"           // 看门狗，防止长运算触发WDT
 #include "esp_system.h"             // esp_restart()
 }
+
+#include <netdb.h>
+#include <arpa/inet.h>
 
 #include "audio_manager.h"          // 音频管理器
 #include "wifi_manager.h"           // WiFi管理器
@@ -74,6 +69,28 @@ extern "C"
 #include "ble_provisioning.h"       // BLE配网服务
 
 static const char *TAG = "语音识别"; // 日志标签
+
+// mDNS 主机名解析（通过 getaddrinfo 查询 .local 域名）
+static std::string resolve_mdns_hostname(const char* hostname)
+{
+    struct addrinfo hints = {};
+    struct addrinfo* res = nullptr;
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    int ret = getaddrinfo(hostname, nullptr, &hints, &res);
+    if (ret != 0 || res == nullptr) {
+        ESP_LOGW(TAG, "mDNS 解析 %s 失败，回退硬编码地址", hostname);
+        return "";
+    }
+
+    char ip[INET_ADDRSTRLEN];
+    struct sockaddr_in* addr = (struct sockaddr_in*)res->ai_addr;
+    inet_ntop(AF_INET, &addr->sin_addr, ip, sizeof(ip));
+    freeaddrinfo(res);
+    ESP_LOGI(TAG, "mDNS 解析成功: %s -> %s", hostname, ip);
+    return std::string(ip);
+}
 
 // 🔌 硬件引脚定义
 #define LED_GPIO GPIO_NUM_21 // LED指示灯连接到GPIO21（记得加限流电阻哦）
@@ -87,7 +104,7 @@ static const char *TAG = "语音识别"; // 日志标签
 // 调试阶段：改为你电脑的局域网 IP，如 ws://10.186.219.181:8888
 // 对接云端：改为云服务器地址，如 ws://your-server.com:8888
 // 改完重新编译烧录即可，仅首次烧录或 NVS 清除后生效
-#define WS_URI_DEFAULT "ws://10.59.170.181:8888"
+#define WS_URI_DEFAULT "ws://10.209.155.181:8888"
 
 // WiFi和WebSocket管理器
 static WiFiManager* wifi_manager = nullptr;
@@ -106,37 +123,8 @@ typedef enum
     STATE_WAITING_RESPONSE = 2, // 等待状态：等待服务器返回AI响应
 } system_state_t;
 
-// 🎤 本地命令词ID（快速响应，无需联网）
-// 这些ID来自ESP-SR语音识别框架的预定义命令词表
-#define COMMAND_TURN_OFF_LIGHT 308 // "帮我关灯" - 关闭LED
-#define COMMAND_TURN_ON_LIGHT 309  // "帮我开灯" - 点亮LED
-#define COMMAND_BYE_BYE 314        // "拜拜" - 退出对话
-#define COMMAND_CUSTOM 315         // "现在安全屋情况如何" - 演示用
-
-// 📝 命令词配置结构（告诉系统要识别哪些命令）
-typedef struct
-{
-    int command_id;              // 命令的唯一标识符
-    const char *pinyin;          // 命令的拼音（用于语音识别匹配）
-    const char *description;     // 命令的中文描述（方便理解）
-} command_config_t;
-
-// 自定义命令词列表
-static const command_config_t custom_commands[] = {
-    {COMMAND_TURN_ON_LIGHT, "bang wo kai deng", "帮我开灯"},
-    {COMMAND_TURN_OFF_LIGHT, "bang wo guan deng", "帮我关灯"},
-    {COMMAND_BYE_BYE, "bai bai", "拜拜"},
-    {COMMAND_CUSTOM, "xian zai an quan wu qing kuang ru he", "现在安全屋情况如何"},
-};
-
-#define CUSTOM_COMMANDS_COUNT (sizeof(custom_commands) / sizeof(custom_commands[0]))
-
 // 全局变量
 static system_state_t current_state = STATE_WAITING_WAKEUP;
-static esp_mn_iface_t *multinet = NULL;
-static model_iface_data_t *mn_model_data = NULL;
-static TickType_t command_timeout_start = 0;
-static const TickType_t COMMAND_TIMEOUT_MS = 5000; // 5秒超时
 
 // VAD（语音活动检测）相关变量
 static vad_handle_t vad_inst = NULL;
@@ -316,118 +304,6 @@ static void led_turn_off(void)
 }
 
 /**
- * @brief 配置本地命令词识别
- *
- * 🎆 这个函数会告诉语音识别系统要识别哪些中文命令。
- * 这些命令在本地运行，不需要联网，响应速度快。
- * 
- * 工作流程：
- * 1. 清空旧的命令词列表
- * 2. 添加我们定义的新命令词（如"帮我开灯"）
- * 3. 更新到识别模型中
- *
- * @param multinet 语音识别的接口对象
- * @param mn_model_data 识别模型的数据
- * @return ESP_OK=成功，ESP_FAIL=失败
- */
-static esp_err_t configure_custom_commands(esp_mn_iface_t *multinet, model_iface_data_t *mn_model_data)
-{
-    ESP_LOGI(TAG, "开始配置自定义命令词...");
-
-    // 首先尝试从sdkconfig加载默认命令词配置
-    esp_mn_commands_update_from_sdkconfig(multinet, mn_model_data);
-
-    // 清除现有命令词，重新开始
-    esp_mn_commands_clear();
-
-    // 分配命令词管理结构
-    esp_err_t ret = esp_mn_commands_alloc(multinet, mn_model_data);
-    if (ret != ESP_OK)
-    {
-        ESP_LOGE(TAG, "命令词管理结构分配失败: %s", esp_err_to_name(ret));
-        return ESP_FAIL;
-    }
-
-    // 添加自定义命令词
-    int success_count = 0;
-    int fail_count = 0;
-
-    for (int i = 0; i < CUSTOM_COMMANDS_COUNT; i++)
-    {
-        const command_config_t *cmd = &custom_commands[i];
-
-        ESP_LOGI(TAG, "添加命令词 [%d]: %s (%s)",
-                 cmd->command_id, cmd->description, cmd->pinyin);
-
-        // 添加命令词
-        esp_err_t ret_cmd = esp_mn_commands_add(cmd->command_id, cmd->pinyin);
-        if (ret_cmd == ESP_OK)
-        {
-            success_count++;
-            ESP_LOGI(TAG, "✓ 命令词 [%d] 添加成功", cmd->command_id);
-        }
-        else
-        {
-            fail_count++;
-            ESP_LOGE(TAG, "✗ 命令词 [%d] 添加失败: %s",
-                     cmd->command_id, esp_err_to_name(ret_cmd));
-        }
-    }
-
-    // 更新命令词到模型
-    ESP_LOGI(TAG, "更新命令词到模型...");
-    esp_mn_error_t *error_phrases = esp_mn_commands_update();
-    if (error_phrases != NULL && error_phrases->num > 0)
-    {
-        ESP_LOGW(TAG, "有 %d 个命令词更新失败:", error_phrases->num);
-        for (int i = 0; i < error_phrases->num; i++)
-        {
-            ESP_LOGW(TAG, "  失败命令 %d: %s",
-                     error_phrases->phrases[i]->command_id,
-                     error_phrases->phrases[i]->string);
-        }
-    }
-
-    // 打印配置结果
-    ESP_LOGI(TAG, "命令词配置完成: 成功 %d 个, 失败 %d 个", success_count, fail_count);
-
-    // 打印激活的命令词
-    ESP_LOGI(TAG, "当前激活的命令词列表:");
-    multinet->print_active_speech_commands(mn_model_data);
-
-    // 打印支持的命令列表
-    ESP_LOGI(TAG, "支持的语音命令:");
-    for (int i = 0; i < CUSTOM_COMMANDS_COUNT; i++)
-    {
-        const command_config_t *cmd = &custom_commands[i];
-        ESP_LOGI(TAG, "  ID=%d: '%s'", cmd->command_id, cmd->description);
-    }
-
-    return (fail_count == 0) ? ESP_OK : ESP_FAIL;
-}
-
-/**
- * @brief 根据命令ID获取中文说明
- *
- * 🔍 这是一个工具函数，用来查找命令ID对应的中文说明。
- * 比如：309 -> "帮我开灯"
- * 
- * @param command_id 命令的数字ID
- * @return 命令的中文说明文字
- */
-static const char *get_command_description(int command_id)
-{
-    for (int i = 0; i < CUSTOM_COMMANDS_COUNT; i++)
-    {
-        if (custom_commands[i].command_id == command_id)
-        {
-            return custom_commands[i].description;
-        }
-    }
-    return "未知命令";
-}
-
-/**
  * @brief 播放音频文件
  *
  * 🔊 这个函数会通过扬声器播放指定的音频数据。
@@ -524,7 +400,7 @@ static void handle_ws_resend(void)
 /**
  * @brief 退出对话模式
  *
- * 👋 当用户说"拜拜"或对话超时后，调用这个函数结束对话。
+ * 👋 当对话超时后，调用这个函数结束对话。
  * 
  * 执行步骤：
  * 1. 播放"再见"的音频
@@ -633,9 +509,16 @@ extern "C" void app_main(void)
     }
     ESP_LOGI(TAG, "✅ WiFi 已连接");
 
-    // ⑥ 连接WebSocket服务器
-    ESP_LOGI(TAG, "正在连接WebSocket服务器...");
-    websocket_client = new WebSocketClient(cfg_ws_uri, true, 5000);
+    // ⑥ mDNS 解析 → 连接WebSocket服务器
+    ESP_LOGI(TAG, "正在通过 mDNS 发现服务器...");
+    std::string server_ip = resolve_mdns_hostname("xinou.local");
+    std::string ws_uri;
+    if (!server_ip.empty()) {
+        ws_uri = "ws://" + server_ip + ":8888";
+    } else {
+        ws_uri = cfg_ws_uri;  // 回退 NVS/硬编码
+    }
+    websocket_client = new WebSocketClient(ws_uri, true, 5000);
     websocket_client->setEventCallback(on_websocket_event);
     if (websocket_client->connect() != ESP_OK) {
         ESP_LOGE(TAG, "WebSocket连接失败");
@@ -772,47 +655,7 @@ extern "C" void app_main(void)
         return;
     }
 
-    // ⑨ 加载命令词识别模型（识别"开灯"、"关灯"等）
-    ESP_LOGI(TAG, "正在加载命令词识别模型...");
-
-    // 获取中文命令词识别模型（MultiNet7）
-    char *mn_name = esp_srmodel_filter(models, ESP_MN_PREFIX, ESP_MN_CHINESE);
-    if (mn_name == NULL)
-    {
-        ESP_LOGE(TAG, "未找到中文命令词识别模型！");
-        ESP_LOGE(TAG, "请确保已正确配置并烧录MultiNet7中文模型");
-        return;
-    }
-
-    ESP_LOGI(TAG, "✓ 选择命令词模型: %s", mn_name);
-
-    // 获取命令词识别接口
-    multinet = esp_mn_handle_from_name(mn_name);
-    if (multinet == NULL)
-    {
-        ESP_LOGE(TAG, "获取命令词识别接口失败，模型: %s", mn_name);
-        return;
-    }
-
-    // 创建命令词模型数据实例
-    mn_model_data = multinet->create(mn_name, 6000);
-    if (mn_model_data == NULL)
-    {
-        ESP_LOGE(TAG, "创建命令词模型数据失败");
-        return;
-    }
-
-    // 配置自定义命令词
-    ESP_LOGI(TAG, "正在配置命令词...");
-    esp_err_t cmd_config_ret = configure_custom_commands(multinet, mn_model_data);
-    if (cmd_config_ret != ESP_OK)
-    {
-        ESP_LOGE(TAG, "命令词配置失败");
-        return;
-    }
-    ESP_LOGI(TAG, "✓ 命令词配置完成");
-
-    // ⑩ 初始化噪音抑制（可选，提高噪音环境下的识别率）
+    // ⑨ 初始化噪音抑制（可选，提高噪音环境下的识别率）
     ESP_LOGI(TAG, "正在初始化噪音抑制模块...");
     
     // 获取噪音抑制模型
@@ -839,7 +682,7 @@ extern "C" void app_main(void)
         }
     }
 
-    // ⑪ 准备音频缓冲区
+    // ⑩ 准备音频缓冲区
     // 获取语音识别模型需要的数据块大小
     int audio_chunksize = wakenet->get_samp_chunksize(model_data) * sizeof(int16_t);
 
@@ -870,7 +713,6 @@ extern "C" void app_main(void)
     // 显示系统配置信息
     ESP_LOGI(TAG, "✓ 智能语音助手系统配置完成:");
     ESP_LOGI(TAG, "  - 唤醒词模型: %s", model_name);
-    ESP_LOGI(TAG, "  - 命令词模型: %s", mn_name);
     ESP_LOGI(TAG, "  - 音频块大小: %d 字节", audio_chunksize);
     ESP_LOGI(TAG, "  - 噪音抑制: %s", (nsn_model_data != NULL) ? "已启用" : "未启用");
     ESP_LOGI(TAG, "  - 检测置信度: 90%%");
@@ -919,6 +761,9 @@ extern "C" void app_main(void)
                 processed_audio = ns_out_buffer;  // 使用噪音抑制后的数据
             }
         }
+
+        // 每帧让出 CPU 1ms，防止 NSNet+WakeNet 连续推理饿死 IDLE 任务导致 TWDT 触发
+        vTaskDelay(1);
 
         if (current_state == STATE_WAITING_WAKEUP)
         {
@@ -977,8 +822,7 @@ extern "C" void app_main(void)
 
                 // 重置各种检测器
                 vad_reset_trigger(vad_inst);        // 重置VAD
-                multinet->clean(mn_model_data);     // 清空命令词缓冲区
-                
+
                 ESP_LOGI(TAG, "开始录音，请说话...");
             }
         }
@@ -1013,102 +857,7 @@ extern "C" void app_main(void)
                         stream_send_buf_pos = 0;
                     }
                 }
-                
-                // 🎯 连续对话模式下，同时检测本地命令词（如"开灯"、"拜拜"）
-                // 每帧都跑，与原版一致——短命令词（如"拜拜"）必须从第一帧开始积累才能识别
-                if (is_continuous_conversation)
-                {
-                    esp_mn_state_t mn_state = multinet->detect(mn_model_data, processed_audio);
-                    if (mn_state == ESP_MN_STATE_DETECTED)
-                    {
-                        // 获取识别结果
-                        esp_mn_results_t *mn_result = multinet->get_results(mn_model_data);
-                        if (mn_result->num > 0)
-                        {
-                            int command_id = mn_result->command_id[0];
-                            float prob = mn_result->prob[0];
-                            const char *cmd_desc = get_command_description(command_id);
-                            
-                            ESP_LOGI(TAG, "🎯 在录音中检测到命令词: ID=%d, 置信度=%.2f, 内容=%s, 命令='%s'",
-                                     command_id, prob, mn_result->string, cmd_desc);
-                            
-                            // 停止录音和实时传输
-                            audio_manager->stopRecording();
-                            is_realtime_streaming = false;
-                            stream_send_buf_pos = 0;
 
-                            // 通知服务器取消本次录音（服务器已收到recording_started，需要告知取消）
-                            if (websocket_client != nullptr && websocket_client->isConnected()) {
-                                websocket_client->sendText("{\"event\":\"recording_cancelled\"}");
-                            }
-
-                            // 进入连续对话模式（命令执行后可以继续说话或说拜拜退出）
-                            is_continuous_conversation = true;
-                            
-                            // 直接处理命令，不发送到服务器
-                            if (command_id == COMMAND_TURN_ON_LIGHT)
-                            {
-                                ESP_LOGI(TAG, "💡 执行开灯命令");
-                                led_turn_on();
-                                play_audio_with_stop(ok, ok_len, "开灯确认音频");
-                                // 继续保持连续对话模式
-                                audio_manager->clearRecordingBuffer();
-                                audio_manager->startRecording();
-                                vad_speech_detected = false;
-                                vad_silence_frames = 0;
-                                user_started_speaking = false;
-                                recording_timeout_start = xTaskGetTickCount();
-                                is_realtime_streaming = false;  // 等待用户开始说话才开启流式传输
-                                vad_reset_trigger(vad_inst);
-                                multinet->clean(mn_model_data);
-                                ESP_LOGI(TAG, "命令执行完成，继续录音...");
-                                continue;
-                            }
-                            else if (command_id == COMMAND_TURN_OFF_LIGHT)
-                            {
-                                ESP_LOGI(TAG, "💡 执行关灯命令");
-                                led_turn_off();
-                                play_audio_with_stop(ok, ok_len, "关灯确认音频");
-                                // 继续保持连续对话模式
-                                audio_manager->clearRecordingBuffer();
-                                audio_manager->startRecording();
-                                vad_speech_detected = false;
-                                vad_silence_frames = 0;
-                                user_started_speaking = false;
-                                recording_timeout_start = xTaskGetTickCount();
-                                is_realtime_streaming = false;  // 等待用户开始说话才开启流式传输
-                                vad_reset_trigger(vad_inst);
-                                multinet->clean(mn_model_data);
-                                ESP_LOGI(TAG, "命令执行完成，继续录音...");
-                                continue;
-                            }
-                            else if (command_id == COMMAND_BYE_BYE)
-                            {
-                                ESP_LOGI(TAG, "👋 检测到拜拜命令，退出对话");
-                                execute_exit_logic();
-                                continue;
-                            }
-                            else if (command_id == COMMAND_CUSTOM)
-                            {
-                                ESP_LOGI(TAG, "💡 执行自定义命令词");
-                                play_audio_with_stop(custom, custom_len, "自定义确认音频");
-                                // 继续保持连续对话模式
-                                audio_manager->clearRecordingBuffer();
-                                audio_manager->startRecording();
-                                vad_speech_detected = false;
-                                vad_silence_frames = 0;
-                                user_started_speaking = false;
-                                recording_timeout_start = xTaskGetTickCount();
-                                is_realtime_streaming = false;  // 等待用户开始说话才开启流式传输
-                                vad_reset_trigger(vad_inst);
-                                multinet->clean(mn_model_data);
-                                ESP_LOGI(TAG, "命令执行完成，继续录音...");
-                                continue;
-                            }
-                        }
-                    }
-                }
-                
                 // 👂 使用VAD检测用户是否在说话
                 // VAD会分析音频，判断是语音还是静音
                 vad_state_t vad_state = vad_process(vad_inst, processed_audio, SAMPLE_RATE, 30);
@@ -1232,7 +981,6 @@ extern "C" void app_main(void)
                                 recording_timeout_start = xTaskGetTickCount();
                             }
                             vad_reset_trigger(vad_inst);
-                            multinet->clean(mn_model_data);
                         }
                     }   // closes if (vad_silence_frames >= VAD_SILENCE_FRAMES_REQUIRED)
                 }       // closes else if (vad_state == VAD_SILENCE)
@@ -1289,10 +1037,7 @@ extern "C" void app_main(void)
                 audio_manager->resetResponsePlayedFlag(); // 重置标志
                 // 重置VAD触发器状态
                 vad_reset_trigger(vad_inst);
-                // 重置命令词识别缓冲区
-                multinet->clean(mn_model_data);
                 ESP_LOGI(TAG, "进入连续对话模式，请在%d秒内继续说话...", RECORDING_TIMEOUT_MS / 1000);
-                ESP_LOGI(TAG, "💡 提示：1) 可以继续提问 2) 说\"帮我开/关灯\" 3) 说\"拜拜\"结束");
             }
             else
             {

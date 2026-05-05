@@ -9,6 +9,7 @@
 extern "C" {
 #include <string.h>
 #include "esp_log.h"
+#include "esp_heap_caps.h"
 #include "bsp_board.h"
 }
 
@@ -30,12 +31,13 @@ AudioManager::AudioManager(uint32_t sample_rate, uint32_t recording_buffer_sec, 
     , response_length(0)
     , response_played(false)
     , is_streaming(false)
-    , streaming_buffer(nullptr)
-    , streaming_buffer_size(STREAMING_BUFFER_SIZE)
-    , streaming_write_pos(0)
-    , streaming_read_pos(0)
+    , ring_buf(nullptr)
+    , ring_buf_total(0)
+    , ring_write_pos(0)
+    , ring_read_pos(0)
+    , ring_data_len(0)
+    , ring_mutex(nullptr)
     , playback_task_handle(nullptr)
-    , audio_queue(nullptr)
     , playback_task_running(false)
     , streaming_finished(false)
 {
@@ -70,17 +72,37 @@ esp_err_t AudioManager::init() {
     ESP_LOGI(TAG, "✓ 响应缓冲区分配成功，大小: %zu 字节 (%lu 秒)", 
              response_buffer_size, (unsigned long)response_duration_sec);
     
-    // 创建音频播放队列（每个槽存一个 malloc 块的指针）
-    audio_queue = xQueueCreate(AUDIO_QUEUE_SIZE, sizeof(uint8_t*));
-    if (audio_queue == nullptr) {
-        ESP_LOGE(TAG, "音频播放队列创建失败");
+    // 分配流式播放环形缓冲区（优先从 PSRAM 分配，PSRAM 不足时降级内部 RAM）
+    ring_buf = (uint8_t*)heap_caps_malloc(RING_BUF_SIZE, MALLOC_CAP_SPIRAM);
+    if (ring_buf == nullptr) {
+        ESP_LOGW(TAG, "PSRAM 分配失败，尝试内部 RAM...");
+        ring_buf = (uint8_t*)malloc(RING_BUF_SIZE);
+    }
+    if (ring_buf == nullptr) {
+        ESP_LOGE(TAG, "流式播放缓冲区分配失败，需要 %zu 字节", RING_BUF_SIZE);
         free(recording_buffer);
         free(response_buffer);
         recording_buffer = nullptr;
         response_buffer = nullptr;
         return ESP_ERR_NO_MEM;
     }
-    ESP_LOGI(TAG, "✓ 音频播放队列创建成功，容量: %zu 块", AUDIO_QUEUE_SIZE);
+    ring_buf_total = RING_BUF_SIZE;
+    ESP_LOGI(TAG, "✓ 流式播放环形缓冲区分配成功，大小: %zu KB (~%zu 秒)",
+             ring_buf_total / 1024, ring_buf_total / 32000);
+
+    // 创建环形缓冲区互斥锁
+    ring_mutex = xSemaphoreCreateMutex();
+    if (ring_mutex == nullptr) {
+        ESP_LOGE(TAG, "互斥锁创建失败");
+        free(recording_buffer);
+        free(response_buffer);
+        free(ring_buf);
+        recording_buffer = nullptr;
+        response_buffer = nullptr;
+        ring_buf = nullptr;
+        return ESP_ERR_NO_MEM;
+    }
+    ESP_LOGI(TAG, "✓ 互斥锁创建成功");
 
     return ESP_OK;
 }
@@ -89,21 +111,25 @@ void AudioManager::deinit() {
     // 停止播放任务（如果还在运行）
     if (playback_task_running) {
         streaming_finished = true;
-        if (audio_queue) {
-            uint8_t* ptr;
-            while (xQueueReceive(audio_queue, &ptr, 0) == pdTRUE) {
-                free(ptr);
-            }
-        }
         uint32_t timeout = 200;
         while (playback_task_running && timeout-- > 0) {
             vTaskDelay(pdMS_TO_TICKS(10));
         }
+        if (playback_task_running && playback_task_handle) {
+            vTaskDelete(playback_task_handle);
+            playback_task_handle = nullptr;
+            playback_task_running = false;
+        }
     }
 
-    if (audio_queue != nullptr) {
-        vQueueDelete(audio_queue);
-        audio_queue = nullptr;
+    if (ring_mutex != nullptr) {
+        vSemaphoreDelete(ring_mutex);
+        ring_mutex = nullptr;
+    }
+
+    if (ring_buf != nullptr) {
+        free(ring_buf);
+        ring_buf = nullptr;
     }
 
     if (recording_buffer != nullptr) {
@@ -114,11 +140,6 @@ void AudioManager::deinit() {
     if (response_buffer != nullptr) {
         free(response_buffer);
         response_buffer = nullptr;
-    }
-
-    if (streaming_buffer != nullptr) {
-        free(streaming_buffer);
-        streaming_buffer = nullptr;
     }
 }
 
@@ -143,13 +164,21 @@ bool AudioManager::addRecordingData(const int16_t* data, size_t samples) {
         return false;
     }
 
-    for (size_t i = 0; i < samples; i++) {
-        recording_buffer[recording_write_pos] = data[i];
-        recording_write_pos++;
+    size_t space = recording_buffer_size - recording_write_pos;
+    if (samples <= space) {
+        memcpy(&recording_buffer[recording_write_pos], data, samples * sizeof(int16_t));
+        recording_write_pos += samples;
         if (recording_write_pos >= recording_buffer_size) {
             recording_write_pos = 0;
             recording_wrapped = true;
         }
+    } else {
+        // 写入跨越缓冲区末尾，分两段 memcpy
+        memcpy(&recording_buffer[recording_write_pos], data, space * sizeof(int16_t));
+        size_t remaining = samples - space;
+        memcpy(recording_buffer, &data[space], remaining * sizeof(int16_t));
+        recording_write_pos = remaining;
+        recording_wrapped = true;
     }
 
     // 更新有效数据长度
@@ -264,23 +293,20 @@ void AudioManager::startStreamingPlayback() {
     ESP_LOGI(TAG, "开始流式音频播放");
     is_streaming = true;
     streaming_finished = false;
-    streaming_write_pos = 0;
-    streaming_read_pos = 0;
 
-    // 清空队列中的残留数据
-    if (audio_queue) {
-        uint8_t* ptr;
-        while (xQueueReceive(audio_queue, &ptr, 0) == pdTRUE) {
-            free(ptr);
-        }
-    }
+    // 重置环形缓冲区状态
+    if (ring_mutex) xSemaphoreTake(ring_mutex, portMAX_DELAY);
+    ring_write_pos = 0;
+    ring_read_pos  = 0;
+    ring_data_len  = 0;
+    if (ring_mutex) xSemaphoreGive(ring_mutex);
 
-    // 启动独立播放任务，避免阻塞 WebSocket 回调
+    // 启动独立播放任务，与 WebSocket 回调解耦
     playback_task_running = true;
     BaseType_t ret = xTaskCreate(
         playbackTaskFunc, "audio_play",
         4096, this,
-        configMAX_PRIORITIES - 2,
+        5,  // 低于 WiFi/WebSocket 任务，避免抢占音频接收
         &playback_task_handle
     );
     if (ret != pdPASS) {
@@ -290,28 +316,32 @@ void AudioManager::startStreamingPlayback() {
 }
 
 bool AudioManager::addStreamingAudioChunk(const uint8_t* data, size_t size) {
-    if (!is_streaming || !data || size == 0 || !audio_queue) {
+    if (!is_streaming || !data || size == 0 || !ring_buf || !ring_mutex) {
         return false;
     }
 
-    // 分配内存块：前 sizeof(size_t) 字节存长度，后跟音频数据
-    uint8_t* block = (uint8_t*)malloc(sizeof(size_t) + size);
-    if (!block) {
-        ESP_LOGE(TAG, "音频块内存分配失败: %zu 字节", sizeof(size_t) + size);
+    xSemaphoreTake(ring_mutex, portMAX_DELAY);
+
+    size_t free_space = ring_buf_total - ring_data_len;
+    if (size > free_space) {
+        xSemaphoreGive(ring_mutex);
+        ESP_LOGW(TAG, "环形缓冲区已满，丢弃 %zu 字节（已用 %zu / %zu KB）",
+                 size, ring_data_len / 1024, ring_buf_total / 1024);
         return false;
     }
 
-    memcpy(block, &size, sizeof(size_t));
-    memcpy(block + sizeof(size_t), data, size);
-
-    // 非阻塞投递（立即返回，不阻塞 WebSocket 回调任务）
-    if (xQueueSend(audio_queue, &block, 0) != pdTRUE) {
-        ESP_LOGW(TAG, "音频队列已满，丢弃 %zu 字节", size);
-        free(block);
-        return false;
+    // 写入数据（可能跨越缓冲区末尾，分两段写）
+    size_t space_to_end = ring_buf_total - ring_write_pos;
+    if (size <= space_to_end) {
+        memcpy(ring_buf + ring_write_pos, data, size);
+    } else {
+        memcpy(ring_buf + ring_write_pos, data, space_to_end);
+        memcpy(ring_buf, data + space_to_end, size - space_to_end);
     }
+    ring_write_pos = (ring_write_pos + size) % ring_buf_total;
+    ring_data_len += size;
 
-    ESP_LOGD(TAG, "入队音频块: %zu 字节", size);
+    xSemaphoreGive(ring_mutex);
     return true;
 }
 
@@ -320,13 +350,13 @@ void AudioManager::finishStreamingPlayback() {
         return;
     }
 
-    ESP_LOGI(TAG, "结束流式播放，等待播放任务排空队列...");
+    ESP_LOGI(TAG, "结束流式播放，等待播放任务排空缓冲区...");
 
-    // 通知播放任务：数据已全部入队，队列排空后可退出
+    // 通知播放任务：数据已全部写入，缓冲区排空后可退出
     streaming_finished = true;
 
-    // 等待播放任务自然退出（最多10秒）
-    uint32_t timeout = 10000 / 50;
+    // 等待播放任务自然退出（最多 30 秒，留足 10 秒音频播放余量）
+    uint32_t timeout = 30000 / 50;
     while (playback_task_running && timeout-- > 0) {
         vTaskDelay(pdMS_TO_TICKS(50));
     }
@@ -342,7 +372,5 @@ void AudioManager::finishStreamingPlayback() {
     }
 
     is_streaming = false;
-    streaming_write_pos = 0;
-    streaming_read_pos = 0;
     ESP_LOGI(TAG, "流式播放完成");
 }

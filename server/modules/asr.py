@@ -33,8 +33,6 @@ def _recognize_sync(wav_path: str) -> str:
     )
     result = recognizer.call(wav_path)
 
-    print(f"[ASR debug] status={result.status_code} code={result.code} message={result.message} output={result.output}")
-
     if result.status_code != 200:
         raise RuntimeError(f"ASR 错误 {result.code}: {result.message}")
 

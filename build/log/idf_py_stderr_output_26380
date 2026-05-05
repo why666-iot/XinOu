@@ -1,0 +1,29 @@
+Command: D:\Espressif\python_env\idf5.5_py3.10_env\Scripts\python.exe D:\Espressif\frameworks\esp-idf-v5.5\tools/idf_monitor.py -p com17 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 D:\ESP32Code\speech_commands_recognition_with_llm\build\speech_commands_recognition.elf D:\ESP32Code\speech_commands_recognition_with_llm\build\bootloader\bootloader.elf --force-color -m 'D:\Espressif\python_env\idf5.5_py3.10_env\Scripts\python.exe' 'D:\Espressif\frameworks\esp-idf-v5.5\tools\idf.py'
+[0;33m--- esp-idf-monitor 1.9.0 on com17 115200[0m
+[0;33m--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H[0m
+[0m--- 0x40049087: [0;33musb_uart_device_tx_one_char[0m[0m in [0;32mROM[0m
+[0m--- 0x40048836: [0;33muart_tx_one_char_uart[0m[0m in [0;32mROM[0m
+[0m--- 0x40049b21: [0;33mSPI_WakeUp[0m[0m in [0;32mROM[0m
+[0m--- 0x40048836: [0;33muart_tx_one_char_uart[0m[0m in [0;32mROM[0m
+[0;33m--- To exit from IDF monitor please use "Ctrl+]". Alternatively, you can use Ctrl+T Ctrl+X to exit.[0m
+[0m--- 0x40049b21: [0;33mSPI_WakeUp[0m[0m in [0;32mROM[0m
+[0;33m--- To exit from IDF monitor please use "Ctrl+]". Alternatively, you can use Ctrl+T Ctrl+X to exit.[0m
+[0;33m--- To exit from IDF monitor please use "Ctrl+]". Alternatively, you can use Ctrl+T Ctrl+X to exit.[0m
+[0;33m--- To exit from IDF monitor please use "Ctrl+]". Alternatively, you can use Ctrl+T Ctrl+X to exit.[0m
+[0;33m--- To exit from IDF monitor please use "Ctrl+]". Alternatively, you can use Ctrl+T Ctrl+X to exit.[0m
+[0m--- 0x40048836: [0;33muart_tx_one_char_uart[0m[0m in [0;32mROM[0m
+[0;33m--- To exit from IDF monitor please use "Ctrl+]". Alternatively, you can use Ctrl+T Ctrl+X to exit.[0m
+[0;33m--- To exit from IDF monitor please use "Ctrl+]". Alternatively, you can use Ctrl+T Ctrl+X to exit.[0m
+[0m
+Traceback (most recent call last):
+  File "D:\Espressif\frameworks\esp-idf-v5.5\tools\idf_monitor.py", line 11, in <module>
+    sys.exit(subprocess.run([sys.executable, '-m', 'esp_idf_monitor'] + sys.argv[1:]).returncode)
+  File "C:\Users\27954\.pyenv\pyenv-win\versions\3.10.11\lib\subprocess.py", line 505, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+  File "C:\Users\27954\.pyenv\pyenv-win\versions\3.10.11\lib\subprocess.py", line 1146, in communicate
+    self.wait()
+  File "C:\Users\27954\.pyenv\pyenv-win\versions\3.10.11\lib\subprocess.py", line 1209, in wait
+    return self._wait(timeout=timeout)
+  File "C:\Users\27954\.pyenv\pyenv-win\versions\3.10.11\lib\subprocess.py", line 1506, in _wait
+    result = _winapi.WaitForSingleObject(self._handle,
+KeyboardInterrupt

@@ -1,0 +1,455 @@
+Command: D:\Espressif\python_env\idf5.5_py3.10_env\Scripts\python.exe D:\Espressif\frameworks\esp-idf-v5.5\tools/idf_monitor.py -p com17 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 D:\ESP32Code\speech_commands_recognition_with_llm\build\speech_commands_recognition.elf D:\ESP32Code\speech_commands_recognition_with_llm\build\bootloader\bootloader.elf --force-color -m 'D:\Espressif\python_env\idf5.5_py3.10_env\Scripts\python.exe' 'D:\Espressif\frameworks\esp-idf-v5.5\tools\idf.py'
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x159c
+load:0x403c8700,len:0xd24
+load:0x403cb700,len:0x2f48
+entry 0x403c8924
+[0;32mI (24) boot: ESP-IDF v5.5 2nd stage bootloader[0m
+[0;32mI (25) boot: compile time May  3 2026 10:36:32[0m
+[0;32mI (25) boot: Multicore bootloader[0m
+[0;32mI (25) boot: chip revision: v0.2[0m
+[0;32mI (27) boot: efuse block revision: v1.4[0m
+[0;32mI (31) boot.esp32s3: Boot SPI Speed : 80MHz[0m
+[0;32mI (35) boot.esp32s3: SPI Mode       : DIO[0m
+[0;32mI (39) boot.esp32s3: SPI Flash Size : 8MB[0m
+[0;32mI (42) boot: Enabling RNG early entropy source...[0m
+[0;32mI (47) boot: Partition Table:[0m
+[0;32mI (50) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (62) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (69) boot:  2 factory          factory app      00 00 00010000 00226000[0m
+[0;32mI (75) boot:  3 model            Unknown data     01 82 00236000 0044c000[0m
+[0;32mI (82) boot: End of partition table[0m
+[0;32mI (85) esp_image: segment 0: paddr=00010020 vaddr=3c120020 size=c2510h (795920) map[0m
+[0;32mI (233) esp_image: segment 1: paddr=000d2538 vaddr=3fca1000 size=07980h ( 31104) load[0m
+[0;32mI (239) esp_image: segment 2: paddr=000d9ec0 vaddr=40374000 size=06158h ( 24920) load[0m
+[0;32mI (245) esp_image: segment 3: paddr=000e0020 vaddr=42000020 size=117e50h (1146448) map[0m
+[0;32mI (448) esp_image: segment 4: paddr=001f7e78 vaddr=4037a158 size=16dbch ( 93628) load[0m
+[0;32mI (468) esp_image: segment 5: paddr=0020ec3c vaddr=600fe000 size=00020h (    32) load[0m
+[0;32mI (480) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (480) boot: Disabling RNG early entropy source...[0m
+[0;32mI (490) octal_psram: vendor id    : 0x0d (AP)[0m
+[0;32mI (491) octal_psram: dev id       : 0x02 (generation 3)[0m
+[0;32mI (491) octal_psram: density      : 0x03 (64 Mbit)[0m
+[0;32mI (493) octal_psram: good-die     : 0x01 (Pass)[0m
+[0;32mI (497) octal_psram: Latency      : 0x01 (Fixed)[0m
+[0;32mI (501) octal_psram: VCC          : 0x01 (3V)[0m
+[0;32mI (505) octal_psram: SRF          : 0x01 (Fast Refresh)[0m
+[0;32mI (510) octal_psram: BurstType    : 0x01 (Hybrid Wrap)[0m
+[0;32mI (515) octal_psram: BurstLen     : 0x01 (32 Byte)[0m
+[0;32mI (520) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)[0m
+[0;32mI (525) octal_psram: DriveStrength: 0x00 (1/1)[0m
+[0;32mI (529) esp_psram: Found 8MB PSRAM device[0m
+[0;32mI (533) esp_psram: Speed: 40MHz[0m
+[0;32mI (536) cpu_start: Multicore app[0m
+[0;32mI (1270) esp_psram: SPI SRAM memory test OK[0m
+[0;32mI (1279) cpu_start: Pro cpu start user code[0m
+[0;32mI (1279) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (1279) app_init: Application information:[0m
+[0;32mI (1279) app_init: Project name:     speech_commands_recognition[0m
+[0;32mI (1285) app_init: App version:      63e6827-dirty[0m
+[0;32mI (1289) app_init: Compile time:     May  3 2026 10:57:17[0m
+[0;32mI (1294) app_init: ELF file SHA256:  2770b981d...[0m
+[0;32mI (1299) app_init: ESP-IDF:          v5.5[0m
+[0;32mI (1302) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (1306) efuse_init: Max chip rev:     v0.99 [0m
+[0;32mI (1310) efuse_init: Chip rev:         v0.2[0m
+[0;32mI (1314) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1321) heap_init: At 3FCB1350 len 000383C0 (224 KiB): RAM[0m
+[0;32mI (1326) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM[0m
+[0;32mI (1331) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM[0m
+[0;32mI (1337) heap_init: At 600FE020 len 00001FC8 (7 KiB): RTCRAM[0m
+[0;32mI (1342) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator[0m
+[0;32mI (1349) spi_flash: detected chip: boya[0m
+[0;32mI (1352) spi_flash: flash io: dio[0m
+[0;32mI (1356) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (1362) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (1368) coexist: coex firmware version: 831ec70[0m
+[0;32mI (1392) coexist: coexist rom version e7ae62f[0m
+[0;32mI (1393) main_task: Started on CPU0[0m
+[0;32mI (1403) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+[0;32mI (1403) main_task: Calling app_main()[0m
+[0;32mI (1423) NVS_Config: 从 NVS 加载配置...[0m
+[0;32mI (1423) NVS_Config: NVS 配置加载完成: SSID=ubuntu, Password长度=9, WS_URI=ws://10.59.170.181:8888[0m
+[0;32mI (1423) 语音识别: 启动 BLE 配网服务...[0m
+[0;32mI (1433) BLE_INIT: BT controller compile version [4713a69][0m
+[0;32mI (1433) BLE_INIT: Feature Config, ADV:1, BLE_50:1, DTM:1, SCAN:1, CCA:0, SMP:1, CONNECT:1[0m
+[0;32mI (1443) BLE_INIT: Bluetooth MAC: e8:f6:0a:85:4c:02[0m
+[0;32mI (1453) phy_init: phy_version 701,f4f1da3a,Mar  3 2025,15:50:10[0m
+[0;32mI (1493) NimBLE: GAP procedure initiated: stop advertising.[0m
+
+[0;32mI (1503) NimBLE: Failed to restore IRKs from store; status=8[0m
+
+[0;32mI (1503) NimBLE: GAP procedure initiated: advertise; [0m
+[0;32mI (1503) NimBLE: disc_mode=2[0m
+[0;32mI (1503) NimBLE:  adv_channel_map=0 own_addr_type=0 adv_filter_policy=0 adv_itvl_min=160 adv_itvl_max=320[0m
+[0;32mI (1513) NimBLE: [0m
+
+[0;32mI (1513) BLE_Prov: 📡 BLE 广播已启动，设备名: XinOu-4C02[0m
+[0;32mI (1523) BLE_Prov: ✅ BLE 配网服务已启动，设备名: XinOu-4C02[0m
+[0;32mI (1533) 语音识别: 正在初始化外接LED (GPIO21)...[0m
+[0;32mI (1533) 语音识别: ✓ 外接LED初始化成功，初始状态：关闭[0m
+[0;32mI (1543) 语音识别: 正在连接WiFi...[0m
+[0;32mI (1543) pp: pp rom version: e7ae62f[0m
+[0;32mI (1553) net80211: net80211 rom version: e7ae62f[0m
+[0;32mI (1563) wifi:wifi driver task: 3fcc7894, prio:23, stack:6656, core=0[0m
+[0;32mI (1573) wifi:wifi firmware version: f3dbad7[0m
+[0;32mI (1573) wifi:wifi certification version: v7.0[0m
+[0;32mI (1573) wifi:config NVS flash: enabled[0m
+[0;32mI (1573) wifi:config nano formatting: disabled[0m
+[0;32mI (1573) wifi:Init data frame dynamic rx buffer num: 32[0m
+[0;32mI (1583) wifi:Init static rx mgmt buffer num: 5[0m
+[0;32mI (1583) wifi:Init management short buffer num: 32[0m
+[0;32mI (1583) wifi:Init dynamic tx buffer num: 32[0m
+[0;32mI (1593) wifi:Init static tx FG buffer num: 2[0m
+[0;32mI (1593) wifi:Init static rx buffer size: 1600[0m
+[0;32mI (1603) wifi:Init static rx buffer num: 10[0m
+[0;32mI (1603) wifi:Init dynamic rx buffer num: 32[0m
+[0;32mI (1613) wifi_init: rx ba win: 6[0m
+[0;32mI (1613) wifi_init: accept mbox: 6[0m
+[0;32mI (1613) wifi_init: tcpip mbox: 32[0m
+[0;32mI (1613) wifi_init: udp mbox: 6[0m
+[0;32mI (1623) wifi_init: tcp mbox: 6[0m
+[0;32mI (1623) wifi_init: tcp tx win: 5760[0m
+[0;32mI (1623) wifi_init: tcp rx win: 5760[0m
+[0;32mI (1633) wifi_init: tcp mss: 1440[0m
+[0;32mI (1633) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (1633) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;32mI (1643) wifi:mode : sta (e8:f6:0a:85:4c:00)[0m
+[0;32mI (1643) wifi:enable tsf[0m
+[0;32mI (1643) WiFiManager: 📶 WiFi初始化完成，正在连接到 ubuntu[0m
+[0;32mI (1663) wifi:new:<6,0>, old:<1,0>, ap:<255,255>, sta:<6,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (1663) wifi:state: init -> auth (0xb0)[0m
+[0;32mI (1683) wifi:state: auth -> assoc (0x0)[0m
+[0;32mI (1703) wifi:state: assoc -> run (0x10)[0m
+[0;32mI (1723) wifi:connected with ubuntu, aid = 10, channel 6, BW20, bssid = 02:d7:b2:7f:c6:33[0m
+[0;32mI (1723) wifi:security: WPA2-PSK, phy: bgn, rssi: -23[0m
+[0;32mI (1723) wifi:pm start, type: 1[0m
+
+[0;32mI (1723) wifi:dp: 1, bi: 102400, li: 3, scale listen interval from 307200 us to 307200 us[0m
+[0;32mI (1733) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000[0m
+[0;32mI (1743) wifi:dp: 2, bi: 102400, li: 4, scale listen interval from 307200 us to 409600 us[0m
+[0;32mI (1753) wifi:AP's beacon interval = 102400 us, DTIM period = 2[0m
+[0;32mI (1843) wifi:<ba-add>idx:0 (ifx:0, 02:d7:b2:7f:c6:33), tid:0, ssn:1, winSize:64[0m
+[0;32mI (2843) esp_netif_handlers: sta ip: 10.59.170.185, mask: 255.255.255.0, gw: 10.59.170.152[0m
+[0;32mI (2843) WiFiManager: 🏠 获得IP地址:10.59.170.185[0m
+[0;32mI (2843) WiFiManager: ✅ WiFi连接成功: ubuntu[0m
+[0;32mI (2843) 语音识别: ✅ WiFi 已连接[0m
+[0;32mI (2853) 语音识别: 正在连接WebSocket服务器...[0m
+[0;32mI (2853) WebSocketClient: 🌐 正在连接WebSocket服务器: ws://10.59.170.181:8888[0m
+[0;32mI (2863) websocket_client: Started[0m
+[0;32mI (2863) WebSocketClient: 🔄 尝试重新连接WebSocket...[0m
+[0;32mI (2873) WebSocketClient: ✅ 自动重连任务已启动[0m
+[0;32mI (2873) 语音识别: 正在初始化INMP441数字麦克风...[0m
+[0;32mI (2883) 语音识别: 音频参数: 16kHz采样率, 单声道, 16位[0m
+[0;32mI (2883) bsp_board: 🚀 正在初始化ESP32-S3-DevKitC-1 + INMP441麦克风[0m
+[0;32mI (2893) bsp_board: 🎵 音频参数: 采样率=16000Hz, 声道数=1, 位深=16位[0m
+[0;32mI (2963) bsp_board: I2S 初始化成功[0m
+[0;32mI (2963) 语音识别: ✓ INMP441麦克风初始化成功[0m
+[0;32mI (2963) 语音识别: 正在初始化音频播放功能...[0m
+[0;32mI (2963) 语音识别: 音频播放参数: 16kHz采样率, 单声道, 16位[0m
+[0;32mI (2973) bsp_board: ✅ MAX98357A SD引脚已初始化（GPIO8）[0m
+[0;32mI (2973) bsp_board: ✅ I2S音频播放初始化成功[0m
+[0;32mI (2983) 语音识别: ✓ 音频播放初始化成功[0m
+[0;32mI (2983) 语音识别: 正在初始化语音活动检测（VAD）...[0m
+[0;32mI (2993) 语音识别: ✓ VAD初始化成功[0m
+[0;32mI (2993) 语音识别:   - VAD模式: 1 (中等灵敏度)[0m
+[0;32mI (3003) 语音识别:   - 采样率: 16000 Hz[0m
+[0;32mI (3003) 语音识别:   - 帧长度: 30 ms[0m
+[0;32mI (3003) 语音识别:   - 最小语音时长: 200 ms[0m
+[0;32mI (3013) 语音识别:   - 最小静音时长: 800 ms[0m
+[0;32mI (3013) 语音识别: 正在加载唤醒词检测模型...[0m
+[0;32mI (3023) 语音识别: 内存状态检查:[0m
+[0;32mI (3023) 语音识别:   - 总可用内存: 8299 KB[0m
+[0;32mI (3033) 语音识别:   - 内部RAM: 132 KB[0m
+[0;32mI (3033) 语音识别:   - PSRAM: 8167 KB[0m
+[0;32mI (3033) 语音识别: 开始加载模型文件...[0m
+[0;32mI (3043) 语音识别: 尝试加载模型 (第1次)...[0m
+[0;32mI (3043) MODEL_LOADER: The storage free size is 22592 KB[0m
+[0;32mI (3053) MODEL_LOADER: The partition size is 4400 KB[0m
+[0;32mI (3053) MODEL_LOADER: Successfully load srmodels[0m
+[0;32mI (3063) 语音识别: ✓ 选择唤醒词模型: wn9_hiesp[0m
+MC Quantized wakenet9: wakeNet9_v1h24_Hi,ESP_3_0.63_0.635, tigger:v4, mode:0, p:0, (Dec 16 2025 14:45:55)
+[0;32mI (3133) 语音识别: 正在加载命令词识别模型...[0m
+[0;32mI (3133) 语音识别: ✓ 选择命令词模型: mn7_cn[0m
+Build fst from commands.
+Quantized MultiNet7:rnnt_ctc_2.0, name:mn7_cn, (Dec 16 2025 14:45:55)
+Quantized MultiNet7 search method: 2, time out:6.0 s
+[0;32mI (5523) 语音识别: 正在配置命令词...[0m
+[0;32mI (5523) 语音识别: 开始配置自定义命令词...[0m
+[0;32mI (5523) 语音识别: 添加命令词 [309]: 帮我开灯 (bang wo kai deng)[0m
+[0;32mI (5533) 语音识别: ✓ 命令词 [309] 添加成功[0m
+[0;32mI (5533) 语音识别: 添加命令词 [308]: 帮我关灯 (bang wo guan deng)[0m
+[0;32mI (5543) 语音识别: ✓ 命令词 [308] 添加成功[0m
+[0;32mI (5543) 语音识别: 添加命令词 [314]: 拜拜 (bai bai)[0m
+[0;32mI (5553) 语音识别: ✓ 命令词 [314] 添加成功[0m
+[0;32mI (5553) 语音识别: 添加命令词 [315]: 现在安全屋情况如何 (xian zai an quan wu qing kuang ru he)[0m
+[0;32mI (5573) 语音识别: ✓ 命令词 [315] 添加成功[0m
+[0;32mI (5573) 语音识别: 更新命令词到模型...[0m
+Build fst from commands.
+[0;32mI (5603) 语音识别: 命令词配置完成: 成功 4 个, 失败 0 个[0m
+[0;32mI (5603) 语音识别: 当前激活的命令词列表:[0m
+4 active speech commands:
+Command 309: bang wo kai deng
+Command 308: bang wo guan deng
+Command 314: bai bai
+Command 315: xian zai an quan wu qing kuang ru he
+[0;32mI (5623) 语音识别: 支持的语音命令:[0m
+[0;32mI (5623) 语音识别:   ID=309: '帮我开灯'[0m
+[0;32mI (5623) 语音识别:   ID=308: '帮我关灯'[0m
+[0;32mI (5633) 语音识别:   ID=314: '拜拜'[0m
+[0;32mI (5633) 语音识别:   ID=315: '现在安全屋情况如何'[0m
+[0;32mI (5643) 语音识别: ✓ 命令词配置完成[0m
+[0;32mI (5643) 语音识别: 正在初始化噪音抑制模块...[0m
+[0;32mI (5653) WebSocketClient: 🔗 WebSocket已连接[0m
+[0;32mI (5653) 语音识别: 🔗 WebSocket已连接[0m
+[0;32mI (5663) 语音识别: ✓ 选择噪音抑制模型: nsnet2[0m
+[0;32mI (5763) 语音识别: ✓ 噪音抑制初始化成功[0m
+[0;32mI (5763) 语音识别:   - 噪音抑制模型: nsnet2[0m
+[0;32mI (5763) 语音识别:   - 采样率: 16000 Hz[0m
+[0;32mI (5763) AudioManager: 初始化音频管理器...[0m
+[0;32mI (5773) AudioManager: ✓ 录音环形缓冲区分配成功，大小: 480000 字节 (15 秒)[0m
+[0;32mI (5783) AudioManager: ✓ 响应缓冲区分配成功，大小: 32000 字节 (1 秒)[0m
+[0;32mI (5783) AudioManager: ✓ 音频播放队列创建成功，容量: 64 块[0m
+[0;32mI (5793) 语音识别: ✓ 音频管理器初始化成功[0m
+[0;32mI (5793) 语音识别: ✓ 使用WebSocket进行通信[0m
+[0;32mI (5803) 语音识别: ✓ 智能语音助手系统配置完成:[0m
+[0;32mI (5803) 语音识别:   - 唤醒词模型: wn9_hiesp[0m
+[0;32mI (5813) 语音识别:   - 命令词模型: mn7_cn[0m
+[0;32mI (5813) 语音识别:   - 音频块大小: 1024 字节[0m
+[0;32mI (5823) 语音识别:   - 噪音抑制: 已启用[0m
+[0;32mI (5823) 语音识别:   - 检测置信度: 90%[0m
+[0;32mI (5833) 语音识别: 正在启动智能语音助手...[0m
+[0;32mI (5833) 语音识别: 请对着麦克风说出唤醒词 'Hi,ESP'[0m
+[0;32mI (5843) 语音识别: 系统启动完成，请对着麦克风说 'Hi,ESP'...[0m
+[0;32mI (6773) websocket_client: Started[0m
+[0;32mI (6963) WebSocketClient: 🔗 WebSocket已连接[0m
+[0;32mI (6963) 语音识别: 🔗 WebSocket已连接[0m
+[0;32mI (14983) 语音识别: 🎉 检测到唤醒词 'Hi,ESP'！[0m
+=== 唤醒词检测成功！模型: wn9_hiesp ===
+[0;32mI (14993) 语音识别: 播放欢迎音频...[0m
+[0;32mI (14993) AudioManager: 播放欢迎音频...[0m
+[0;32mI (15903) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (15903) bsp_board: 音频播放完成，播放了 28916 字节[0m
+[0;32mI (15903) AudioManager: ✓ 欢迎音频播放成功[0m
+[0;32mI (15903) 语音识别: 发送录音开始事件[0m
+[0;32mI (15903) AudioManager: 开始录音...[0m
+[0;32mI (15913) 语音识别: 开始录音，请说话...[0m
+[0;32mI (16073) 语音识别: 首次对话：检测到说话，开始实时传输...[0m
+[0;32mI (16073) 语音识别: 预缓冲补发：4096 样本 (0.26 秒)[0m
+[0;32mI (17563) 语音识别: VAD检测到用户说话结束，录音长度: 1.82 秒[0m
+[0;32mI (17563) AudioManager: 停止录音，当前长度: 29184 样本 (1.82 秒)[0m
+[0;32mI (17613) 语音识别: 发送录音结束事件[0m
+[0;32mI (17613) 语音识别: 等待服务器响应音频...[0m
+[0;32mI (20783) 语音识别: 收到WebSocket二进制数据，长度: 4316 字节[0m
+[0;32mI (20783) 语音识别: 🎵 开始流式音频播放[0m
+[0;32mI (20783) AudioManager: 开始流式音频播放[0m
+[0;32mI (20793) AudioManager: 播放任务启动[0m
+[0;32mI (20803) 语音识别: 收到WebSocket二进制数据，长度: 3684 字节[0m
+[0;32mI (20803) 语音识别: 收到WebSocket二进制数据，长度: 2072 字节[0m
+[0;32mI (20813) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (20813) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (20873) 语音识别: 收到WebSocket二进制数据，长度: 168 字节[0m
+[0;32mI (20883) 语音识别: 收到WebSocket二进制数据，长度: 2708 字节[0m
+[0;32mI (20883) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (20893) 语音识别: 收到WebSocket二进制数据，长度: 2412 字节[0m
+[0;32mI (20893) 语音识别: 收到WebSocket二进制数据，长度: 4784 字节[0m
+[0;32mI (20903) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (20913) 语音识别: 收到WebSocket二进制数据，长度: 336 字节[0m
+[0;32mI (20913) 语音识别: 收到WebSocket二进制数据，长度: 2540 字节[0m
+[0;32mI (20973) 语音识别: 收到WebSocket二进制数据，长度: 1086 字节[0m
+[0;32mI (21183) 语音识别: 收到WebSocket二进制数据，长度: 4316 字节[0m
+[0;32mI (21193) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (21193) 语音识别: 收到WebSocket二进制数据，长度: 804 字节[0m
+[0;32mI (21203) 语音识别: 收到WebSocket二进制数据，长度: 2072 字节[0m
+[0;32mI (21283) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (21293) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (21303) 语音识别: 收到WebSocket二进制数据，长度: 168 字节[0m
+[0;32mI (21303) 语音识别: 收到WebSocket二进制数据，长度: 5588 字节[0m
+[0;32mI (21313) 语音识别: 收到WebSocket二进制数据，长度: 2412 字节[0m
+[0;32mI (21323) 语音识别: 收到WebSocket二进制数据，长度: 3344 字节[0m
+[0;32mI (21383) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (21393) 语音识别: 收到WebSocket二进制数据，长度: 1776 字节[0m
+[0;32mI (21393) 语音识别: 收到WebSocket二进制数据，长度: 1100 字节[0m
+[0;32mI (21403) 语音识别: 收到WebSocket二进制数据，长度: 4320 字节[0m
+[0;32mI (21413) 语音识别: 收到WebSocket二进制数据，长度: 2580 字节[0m
+[0;32mI (21413) 语音识别: 收到WebSocket二进制数据，长度: 3176 字节[0m
+[0;32mI (21423) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (21423) 语音识别: 收到WebSocket二进制数据，长度: 3384 字节[0m
+[0;32mI (21433) 语音识别: 收到WebSocket二进制数据，长度: 932 字节[0m
+[0;32mI (21493) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (21493) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (21503) 语音识别: 收到WebSocket二进制数据，长度: 2748 字节[0m
+[0;32mI (21513) 语音识别: 收到WebSocket二进制数据，长度: 3008 字节[0m
+[0;32mI (21523) 语音识别: 收到WebSocket二进制数据，长度: 4992 字节[0m
+[0;32mI (21523) 语音识别: 收到WebSocket二进制数据，长度: 764 字节[0m
+[0;32mI (21533) 语音识别: 收到WebSocket二进制数据，长度: 3174 字节[0m
+[0;32mI (22013) 语音识别: 收到WebSocket二进制数据，长度: 5756 字节[0m
+[0;32mI (22023) 语音识别: 收到WebSocket二进制数据，长度: 2244 字节[0m
+[0;32mI (22033) 语音识别: 收到WebSocket二进制数据，长度: 3512 字节[0m
+[0;32mI (22033) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (22043) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (22043) 语音识别: 收到WebSocket二进制数据，长度: 168 字节[0m
+[0;32mI (22053) 语音识别: 收到WebSocket二进制数据，长度: 1268 字节[0m
+[0;32mI (22103) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (22133) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (22133) 语音识别: 收到WebSocket二进制数据，长度: 2412 字节[0m
+[0;32mI (22143) 语音识别: 收到WebSocket二进制数据，长度: 3344 字节[0m
+[0;32mI (22203) 语音识别: 收到WebSocket二进制数据，长度: 4320 字节[0m
+[0;32mI (22213) 语音识别: 收到WebSocket二进制数据，长度: 336 字节[0m
+[0;32mI (22213) 语音识别: 收到WebSocket二进制数据，长度: 1100 字节[0m
+[0;32mI (22223) 语音识别: 收到WebSocket二进制数据，长度: 2526 字节[0m
+[0;32mI (22233) 语音识别: 收到WebSocket二进制数据，长度: 3230 字节[0m
+[0;32mI (22233) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (22243) 语音识别: 收到WebSocket二进制数据，长度: 3330 字节[0m
+[0;32mI (22243) 语音识别: 收到WebSocket二进制数据，长度: 986 字节[0m
+[0;32mI (22333) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (22343) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (22343) 语音识别: 收到WebSocket二进制数据，长度: 2694 字节[0m
+[0;32mI (22353) 语音识别: 收到WebSocket二进制数据，长度: 4502 字节[0m
+[0;32mI (22433) 语音识别: 收到WebSocket二进制数据，长度: 3428 字节[0m
+[0;32mI (22833) 语音识别: 收到WebSocket二进制数据，长度: 5756 字节[0m
+[0;32mI (22843) 语音识别: 收到WebSocket二进制数据，长度: 2244 字节[0m
+[0;32mI (22853) 语音识别: 收到WebSocket二进制数据，长度: 3512 字节[0m
+[0;32mI (22853) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (22853) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (22863) 语音识别: 收到WebSocket二进制数据，长度: 168 字节[0m
+[0;32mI (22873) 语音识别: 收到WebSocket二进制数据，长度: 2708 字节[0m
+[0;32mI (22923) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (22933) 语音识别: 收到WebSocket二进制数据，长度: 2412 字节[0m
+[0;32mI (22943) 语音识别: 收到WebSocket二进制数据，长度: 3344 字节[0m
+[0;32mI (22943) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (22953) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (22953) 语音识别: 收到WebSocket二进制数据，长度: 336 字节[0m
+[0;32mI (22963) 语音识别: 收到WebSocket二进制数据，长度: 1100 字节[0m
+[0;32mI (22973) 语音识别: 收到WebSocket二进制数据，长度: 4320 字节[0m
+[0;32mI (23033) 语音识别: 收到WebSocket二进制数据，长度: 2580 字节[0m
+[0;32mI (23043) 语音识别: 收到WebSocket二进制数据，长度: 2634 字节[0m
+[0;32mI (23043) 语音识别: 收到ping包，结束流式播放[0m
+[0;32mI (23053) AudioManager: 结束流式播放，等待播放任务排空队列...[0m
+[0;32mI (27363) AudioManager: 队列已空且流式传输完成，退出播放任务[0m
+[0;32mI (27433) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (27433) AudioManager: 播放任务结束[0m
+[0;32mI (27453) AudioManager: 流式播放完成[0m
+[0;32mI (27473) AudioManager: 开始录音...[0m
+[0;32mI (27483) 语音识别: 进入连续对话模式，请在10秒内继续说话...[0m
+[0;32mI (27483) 语音识别: 💡 提示：1) 可以继续提问 2) 说"帮我开/关灯" 3) 说"拜拜"结束[0m
+[0;32mI (27503) 语音识别: 等待用户说话... 剩余 9 秒[0m
+[0;32mI (28513) 语音识别: 等待用户说话... 剩余 8 秒[0m
+[0;32mI (29493) 语音识别: 连续对话：检测到说话，开始实时传输...[0m
+[0;32mI (29503) 语音识别: 预缓冲裁剪：25600 → 8000 样本 (1.60 → 0.50 秒)[0m
+[0;32mI (32313) 语音识别: VAD检测到用户说话结束，录音长度: 3.49 秒[0m
+[0;32mI (32313) AudioManager: 停止录音，当前长度: 55808 样本 (3.49 秒)[0m
+[0;32mI (32363) 语音识别: 发送录音结束事件[0m
+[0;32mI (32363) 语音识别: 等待服务器响应音频...[0m
+[0;32mI (34713) 语音识别: 收到WebSocket二进制数据，长度: 4316 字节[0m
+[0;32mI (34713) 语音识别: 🎵 开始流式音频播放[0m
+[0;32mI (34713) AudioManager: 开始流式音频播放[0m
+[0;32mI (34723) AudioManager: 播放任务启动[0m
+[0;32mI (34733) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (34733) 语音识别: 收到WebSocket二进制数据，长度: 804 字节[0m
+[0;32mI (34743) 语音识别: 收到WebSocket二进制数据，长度: 4952 字节[0m
+[0;32mI (34823) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (34823) 语音识别: 收到WebSocket二进制数据，长度: 168 字节[0m
+[0;32mI (34833) 语音识别: 收到WebSocket二进制数据，长度: 5588 字节[0m
+[0;32mI (34843) 语音识别: 收到WebSocket二进制数据，长度: 2412 字节[0m
+[0;32mI (34853) 语音识别: 收到WebSocket二进制数据，长度: 3344 字节[0m
+[0;32mI (34923) 语音识别: 收到WebSocket二进制数据，长度: 4656 字节[0m
+[0;32mI (34933) 语音识别: 收到WebSocket二进制数据，长度: 1100 字节[0m
+[0;32mI (34933) 语音识别: 收到WebSocket二进制数据，长度: 4320 字节[0m
+[0;32mI (35023) 语音识别: 收到WebSocket二进制数据，长度: 2580 字节[0m
+[0;32mI (35023) 语音识别: 收到WebSocket二进制数据，长度: 3176 字节[0m
+[0;32mI (35033) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (35123) 语音识别: 收到WebSocket二进制数据，长度: 2680 字节[0m
+[0;32mI (35533) 语音识别: 收到WebSocket二进制数据，长度: 5756 字节[0m
+[0;32mI (35543) 语音识别: 收到WebSocket二进制数据，长度: 2244 字节[0m
+[0;32mI (35553) 语音识别: 收到WebSocket二进制数据，长度: 3512 字节[0m
+[0;32mI (35553) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (35563) 语音识别: 收到WebSocket二进制数据，长度: 3048 字节[0m
+[0;32mI (35573) 语音识别: 收到WebSocket二进制数据，长度: 2708 字节[0m
+[0;32mI (35633) 语音识别: 收到WebSocket二进制数据，长度: 4320 字节[0m
+[0;32mI (35633) 语音识别: 收到WebSocket二进制数据，长度: 972 字节[0m
+[0;32mI (35643) 语音识别: 收到WebSocket二进制数据，长度: 464 字节[0m
+[0;32mI (35643) 语音识别: 收到WebSocket二进制数据，长度: 4320 字节[0m
+[0;32mI (35653) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (35663) 语音识别: 收到WebSocket二进制数据，长度: 1776 字节[0m
+[0;32mI (35663) 语音识别: 收到WebSocket二进制数据，长度: 3626 字节[0m
+[0;32mI (35833) 语音识别: 收到WebSocket二进制数据，长度: 5756 字节[0m
+[0;32mI (35843) 语音识别: 收到WebSocket二进制数据，长度: 2244 字节[0m
+[0;32mI (35853) 语音识别: 收到WebSocket二进制数据，长度: 3512 字节[0m
+[0;32mI (35863) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (35863) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (35863) 语音识别: 收到WebSocket二进制数据，长度: 168 字节[0m
+[0;32mI (35873) 语音识别: 收到WebSocket二进制数据，长度: 2708 字节[0m
+[0;32mI (35943) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (35953) 语音识别: 收到WebSocket二进制数据，长度: 2412 字节[0m
+[0;32mI (35953) 语音识别: 收到WebSocket二进制数据，长度: 464 字节[0m
+[0;32mI (35963) 语音识别: 收到WebSocket二进制数据，长度: 4320 字节[0m
+[0;32mI (35973) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (35973) 语音识别: 收到WebSocket二进制数据，长度: 336 字节[0m
+[0;32mI (35983) 语音识别: 收到WebSocket二进制数据，长度: 2540 字节[0m
+[0;32mI (36043) 语音识别: 收到WebSocket二进制数据，长度: 5460 字节[0m
+[0;32mI (36053) 语音识别: 收到WebSocket二进制数据，长度: 296 字节[0m
+[0;32mI (36053) 语音识别: 收到WebSocket二进制数据，长度: 3544 字节[0m
+[0;32mI (36143) 语音识别: 收到WebSocket二进制数据，长度: 5756 字节[0m
+[0;32mI (36153) 语音识别: 收到WebSocket二进制数据，长度: 2244 字节[0m
+[0;32mI (36153) 语音识别: 收到WebSocket二进制数据，长度: 3512 字节[0m
+[0;32mI (36163) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (36173) 语音识别: 收到WebSocket二进制数据，长度: 1608 字节[0m
+[0;32mI (36183) 语音识别: 收到WebSocket二进制数据，长度: 4148 字节[0m
+[0;32mI (36243) 语音识别: 收到WebSocket二进制数据，长度: 1608 字节[0m
+[0;32mI (36243) 语音识别: 收到WebSocket二进制数据，长度: 2244 字节[0m
+[0;32mI (36253) 语音识别: 收到WebSocket二进制数据，长度: 3344 字节[0m
+[0;32mI (36253) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (36263) 语音识别: 收到WebSocket二进制数据，长度: 2880 字节[0m
+[0;32mI (36263) 语音识别: 收到WebSocket二进制数据，长度: 336 字节[0m
+[0;32mI (36273) 语音识别: 收到WebSocket二进制数据，长度: 5420 字节[0m
+[0;32mI (36343) 语音识别: 收到WebSocket二进制数据，长度: 2580 字节[0m
+[0;32mI (36353) 语音识别: 收到WebSocket二进制数据，长度: 3176 字节[0m
+[0;32mI (36363) 语音识别: 收到WebSocket二进制数据，长度: 1440 字节[0m
+[0;32mI (36363) 语音识别: 收到WebSocket二进制数据，长度: 3384 字节[0m
+[0;32mI (36373) 语音识别: 收到WebSocket二进制数据，长度: 5280 字节[0m
+[0;32mI (36383) 语音识别: 收到ping包，结束流式播放[0m
+[0;32mI (36383) AudioManager: 结束流式播放，等待播放任务排空队列...[0m
+[0;32mI (40493) AudioManager: 队列已空且流式传输完成，退出播放任务[0m
+[0;32mI (40563) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (40563) AudioManager: 播放任务结束[0m
+[0;32mI (40583) AudioManager: 流式播放完成[0m
+[0;32mI (40603) AudioManager: 开始录音...[0m
+[0;32mI (40603) 语音识别: 进入连续对话模式，请在10秒内继续说话...[0m
+[0;32mI (40603) 语音识别: 💡 提示：1) 可以继续提问 2) 说"帮我开/关灯" 3) 说"拜拜"结束[0m
+[0;32mI (40633) 语音识别: 等待用户说话... 剩余 9 秒[0m
+[0;32mI (41653) 语音识别: 等待用户说话... 剩余 8 秒[0m
+[0;32mI (42673) 语音识别: 等待用户说话... 剩余 7 秒[0m
+[0;32mI (43703) 语音识别: 等待用户说话... 剩余 6 秒[0m
+[0;32mI (44733) 语音识别: 等待用户说话... 剩余 5 秒[0m
+[0;32mI (45773) 语音识别: 等待用户说话... 剩余 4 秒[0m
+[1;31mE (45913) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:[0m
+[1;31mE (45913) task_wdt:  - IDLE0 (CPU 0)[0m
+[1;31mE (45913) task_wdt: Tasks currently running:[0m
+[1;31mE (45913) task_wdt: CPU 0: main[0m
+[1;31mE (45913) task_wdt: CPU 1: IDLE1[0m
+[1;31mE (45913) task_wdt: Print CPU 0 (current core) backtrace[0m
+
+
+Backtrace: 0x42074B0A:0x3FCA58D0 0x42074F20:0x3FCA58F0 0x4037C56D:0x3FCA5920 0x4004EC72:0x3FCB4980 0x4206D0C8:0x3FCB49A0 0x42048078:0x3FCB49C0 0x42035A31:0x3FCB49E0 0x4203765B:0x3FCB4A10 0x4200DCF1:0x3FCB4A40 0x42116F34:0x3FCB4CA0 0x403834B5:0x3FCB4CD0
+
+[0;32mI (46793) 语音识别: 等待用户说话... 剩余 3 秒[0m
+[0;32mI (47833) 语音识别: 等待用户说话... 剩余 2 秒[0m
+[0;32mI (48863) 语音识别: 等待用户说话... 剩余 1 秒[0m
+[0;33mW (50623) 语音识别: ⏰ 超过10秒没说话，退出对话[0m
+[0;32mI (50623) AudioManager: 停止录音，当前长度: 124416 样本 (7.78 秒)[0m
+[0;32mI (50623) 语音识别: 播放再见音频...[0m
+[0;32mI (50633) AudioManager: 播放再见音频...[0m
+[0;32mI (51963) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (51963) bsp_board: 音频播放完成，播放了 38978 字节[0m
+[0;32mI (51963) AudioManager: ✓ 再见音频播放成功[0m
+[0;32mI (51963) WebSocketClient: 🔌 自动重连任务已停止[0m
+[0;32mI (51963) WebSocketClient: 🔌 正在断开WebSocket连接...[0m
+[0;32mI (52073) WebSocketClient: ✅ WebSocket已完全断开[0m
+[0;32mI (52073) AudioManager: 停止录音，当前长度: 124416 样本 (7.78 秒)[0m
+[0;32mI (52073) 语音识别: 返回等待唤醒状态，请说出唤醒词 'Hi,ESP'[0m

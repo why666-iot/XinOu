@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/queue.h"
+#include "freertos/semphr.h"
 #include "esp_err.h"
 
 class AudioManager {
@@ -247,19 +247,22 @@ private:
     
     // 🌊 流式播放相关变量
     bool is_streaming;                  // 是否在流式播放中
-    uint8_t* streaming_buffer;          // 环形缓冲区（仅保留，不再在回调里直接播放）
-    size_t streaming_buffer_size;       // 缓冲区大小
-    size_t streaming_write_pos;         // 写入位置
-    size_t streaming_read_pos;          // 读取位置
-    static const size_t STREAMING_BUFFER_SIZE = 65536;
-    static const size_t STREAMING_CHUNK_SIZE = 3200;
+
+    // 预分配环形缓冲区（从 PSRAM 分配，避免 malloc/free 碎片化）
+    uint8_t* ring_buf;                  // 环形缓冲区起始地址
+    size_t ring_buf_total;              // 缓冲区总字节数
+    size_t ring_write_pos;              // 写入位置
+    size_t ring_read_pos;               // 读取位置
+    volatile size_t ring_data_len;      // 缓冲区中当前有效字节数
+    SemaphoreHandle_t ring_mutex;       // 保护环形缓冲区读写的互斥锁
+
+    static const size_t RING_BUF_SIZE    = 320 * 1024; // 10 秒音频（16kHz 16bit mono）
+    static const size_t PLAYBACK_CHUNK   = 3200;        // 每次送 I2S 的字节数（0.1 秒）
 
     // 🎬 独立播放任务
     TaskHandle_t  playback_task_handle;
-    QueueHandle_t audio_queue;           // 存放 {size_t size, uint8_t data[]} 的 malloc 块
     volatile bool playback_task_running;
     volatile bool streaming_finished;    // finishStreamingPlayback 已被调用
-    static const size_t AUDIO_QUEUE_SIZE = 64; // 每块约 2~6KB，共约 10 秒缓冲
 
     static void playbackTaskFunc(void* param);
 

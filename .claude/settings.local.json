@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Espressif/frameworks/esp-idf-v5.4/components/**)",
+      "Read(//c/Users/27954/esp/v5.4/esp-idf/components/**)",
+      "Bash(for dir:*)",
+      "Bash(do ls:*)",
+      "Bash(done)",
+      "Bash(echo \"IDF_PATH=$IDF_PATH\")",
+      "Bash(ls \"D:\\\\Espressif\\\\frameworks\\\\esp-idf-v5.1.2\\\\components\" 2>/dev/null | head -30; echo \"---\"; ls \"D:\\\\Espressif\\\\frameworks\\\\esp-idf-v5.1.2\\\\components\\\\mdns\" 2>/dev/null || echo \"No mdns dir\"; find \"D:\\\\Espressif\\\\frameworks\\\\esp-idf-v5.1.2\\\\components\" -maxdepth 1 -iname \"*mdns*\" 2>/dev/null || echo \"No mdns found via find\")",
+      "Bash(cygpath -w /d/ESP32Code/speech_commands_recognition_with_llm/main/audio_manager.cc)"
+    ]
+  }
+}

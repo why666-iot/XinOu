@@ -1,0 +1,56 @@
+Command: D:\Espressif\python_env\idf5.5_py3.10_env\Scripts\python.exe D:\Espressif\frameworks\esp-idf-v5.5\tools/idf_monitor.py -p com17 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 D:\ESP32Code\speech_commands_recognition_with_llm\build\speech_commands_recognition.elf D:\ESP32Code\speech_commands_recognition_with_llm\build\bootloader\bootloader.elf --force-color -m 'D:\Espressif\python_env\idf5.5_py3.10_env\Scripts\python.exe' 'D:\Espressif\frameworks\esp-idf-v5.5\tools\idf.py'
+[0;33m--- esp-idf-monitor 1.9.0 on com17 115200[0m
+[0;33m--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H[0m
+[0m--- 0x403c8700: [0;33m_stext[0m[0m at [0;32m??[0m[0m:[1;31m?[0m
+[0m--- 0x403c8924: [0;33mcall_start_cpu0[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/bootloader/subproject/main/bootloader_start.c[0m[0m:[1;31m25[0m
+[0m--- 0x4207503e: [0;33mtask_wdt_timeout_handling[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/esp_system/task_wdt/task_wdt.c[0m[0m:[1;31m436[0m
+[0m--- 0x42075454: [0;33mtask_wdt_isr[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/esp_system/task_wdt/task_wdt.c[0m[0m:[1;31m509[0m
+[0m--- 0x4037c56d: [0;33m_xt_lowint1[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/xtensa/xtensa_vectors.S[0m[0m:[1;31m1240[0m
+[0m--- 0x420455c9: [0;33mvvadd_int16[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/dl_lib/esp32s3_dsp.S[0m[0m:[1;31m357[0m
+[0m--- 0x42049772: [0;33mdl_nn_add_i16[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/dl_lib/nn/dl_nn_math.c[0m[0m:[1;31m112[0m
+[0m--- 0x4203602d: [0;33mdecoder_joiner_run[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/multinet/multinet7_quantized.c[0m[0m:[1;31m1857[0m
+[0m--- 0x42037bf5: [0;33mdecoder_joiner_run[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/multinet/multinet7_quantized.c[0m[0m:[1;31m1802[0m
+[0m--- (inlined by) [0;33mmodel_detect[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/multinet/multinet7_quantized.c[0m[0m:[1;31m1932[0m
+[0m--- 0x4200e09a: [0;33mapp_main[0m[0m at [0;32mD:/ESP32Code/speech_commands_recognition_with_llm/main/main.cc[0m[0m:[1;31m1053[0m
+[0m--- 0x42117504: [0;33mmain_task[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/freertos/app_startup.c[0m[0m:[1;31m208[0m
+[0m--- 0x403834b5: [0;33mvPortTaskWrapper[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/freertos/FreeRTOS-Kernel/portable/xtensa/port.c[0m[0m:[1;31m139[0m
+[0m--- 0x4207503e: [0;33mtask_wdt_timeout_handling[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/esp_system/task_wdt/task_wdt.c[0m[0m:[1;31m436[0m
+[0m--- 0x42075454: [0;33mtask_wdt_isr[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/esp_system/task_wdt/task_wdt.c[0m[0m:[1;31m509[0m
+[0m--- 0x4037c56d: [0;33m_xt_lowint1[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/xtensa/xtensa_vectors.S[0m[0m:[1;31m1240[0m
+[0m--- 0x4037bb65: [0;33mdl_tie728_pointwise_conv1d_qacc_i16o16k8_preload_core_loop_t[0m[0m at [0;32mdl_tie728_pointwise_conv1d_qacc_i16o16k8_preload_core.S.obj[0m[0m:[1;31m?[0m
+[0m--- 0x4206d5aa: [0;33mdl_tie728_pointwise_conv1d_qacc_i16o16k8_preload[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/dl_lib/base/tie728/dl_tie728_pointwise_conv1d_qacc_i16o16k8_preload.c[0m[0m:[1;31m32[0m
+[0m--- 0x420485ec: [0;33mdl_nn_pointwise_conv1d[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/dl_lib/nn/dl_nn_pointwise_conv1d.c[0m[0m:[1;31m306[0m
+[0m--- 0x42046faf: [0;33mdl_layer_zip_lin_i16[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/dl_lib/layer/dl_layer_zipformer.c[0m[0m:[1;31m208[0m
+[0m--- 0x42047c0f: [0;33mdl_layer_zip_encoder_i16[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/dl_lib/layer/dl_layer_zipformer.c[0m[0m:[1;31m821[0m
+[0m--- 0x42037b25: [0;33mencoder_layer_run[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/multinet/multinet7_quantized.c[0m[0m:[1;31m1544[0m
+[0m--- (inlined by) [0;33mmodel_detect[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/multinet/multinet7_quantized.c[0m[0m:[1;31m1906[0m
+[0m--- 0x4200e09a: [0;33mapp_main[0m[0m at [0;32mD:/ESP32Code/speech_commands_recognition_with_llm/main/main.cc[0m[0m:[1;31m1053[0m
+[0m--- 0x42117504: [0;33mmain_task[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/freertos/app_startup.c[0m[0m:[1;31m208[0m
+[0m--- 0x403834b5: [0;33mvPortTaskWrapper[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/freertos/FreeRTOS-Kernel/portable/xtensa/port.c[0m[0m:[1;31m139[0m
+[0m--- 0x4207503e: [0;33mtask_wdt_timeout_handling[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/esp_system/task_wdt/task_wdt.c[0m[0m:[1;31m436[0m
+[0m--- 0x42075454: [0;33mtask_wdt_isr[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/esp_system/task_wdt/task_wdt.c[0m[0m:[1;31m509[0m
+[0m--- 0x4037c56d: [0;33m_xt_lowint1[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/xtensa/xtensa_vectors.S[0m[0m:[1;31m1240[0m
+[0m--- 0x4203e146: [0;33mmodel_process[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/nsnet/nsnet2_quantized.c[0m[0m:[1;31m1486[0m
+[0m--- 0x4200de2d: [0;33mapp_main[0m[0m at [0;32mD:/ESP32Code/speech_commands_recognition_with_llm/main/main.cc[0m[0m:[1;31m950[0m
+[0m--- 0x42117504: [0;33mmain_task[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/freertos/app_startup.c[0m[0m:[1;31m208[0m
+[0m--- 0x403834b5: [0;33mvPortTaskWrapper[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/freertos/FreeRTOS-Kernel/portable/xtensa/port.c[0m[0m:[1;31m139[0m
+[0m--- 0x4207503e: [0;33mtask_wdt_timeout_handling[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/esp_system/task_wdt/task_wdt.c[0m[0m:[1;31m436[0m
+[0m--- 0x42075454: [0;33mtask_wdt_isr[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/esp_system/task_wdt/task_wdt.c[0m[0m:[1;31m509[0m
+[0m--- 0x4037c56d: [0;33m_xt_lowint1[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/xtensa/xtensa_vectors.S[0m[0m:[1;31m1240[0m
+[0m--- 0x42106168: [0;33mdl_tie728_memcpy[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/dl_lib/base/tie728/dl_tie728_memcpy.S[0m[0m:[1;31m20[0m
+[0m--- 0x4204966d: [0;33mdl_nn_memcpy[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/dl_lib/nn/dl_nn_math.c[0m[0m:[1;31m32[0m
+[0m--- 0x4203d80b: [0;33mdl_convq8_queue_mc_conv2d_NHWC_Wpadding[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/nsnet/nsnet2_quantized.c[0m[0m:[1;31m162[0m
+[0m--- 0x4203dc78: [0;33mmodel_process[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/nsnet/nsnet2_quantized.c[0m[0m:[1;31m1088[0m
+[0m--- 0x4200de2d: [0;33mapp_main[0m[0m at [0;32mD:/ESP32Code/speech_commands_recognition_with_llm/main/main.cc[0m[0m:[1;31m950[0m
+[0m--- 0x42117504: [0;33mmain_task[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/freertos/app_startup.c[0m[0m:[1;31m208[0m
+[0m--- 0x403834b5: [0;33mvPortTaskWrapper[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/freertos/FreeRTOS-Kernel/portable/xtensa/port.c[0m[0m:[1;31m139[0m
+[0m--- 0x403c8700: [0;33m_stext[0m[0m at [0;32m??[0m[0m:[1;31m?[0m
+[0m--- 0x403c8924: [0;33mcall_start_cpu0[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/bootloader/subproject/main/bootloader_start.c[0m[0m:[1;31m25[0m
+[0m--- 0x4207503e: [0;33mtask_wdt_timeout_handling[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/esp_system/task_wdt/task_wdt.c[0m[0m:[1;31m436[0m
+[0m--- 0x42075454: [0;33mtask_wdt_isr[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/esp_system/task_wdt/task_wdt.c[0m[0m:[1;31m509[0m
+[0m--- 0x4037c56d: [0;33m_xt_lowint1[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/xtensa/xtensa_vectors.S[0m[0m:[1;31m1240[0m
+[0m--- 0x4203de2b: [0;33mmodel_process[0m[0m at [0;32m/home/sunxiangyu/workspace/esp_sr_lib/components/nsnet/nsnet2_quantized.c[0m[0m:[1;31m1234[0m
+[0m--- 0x4200de2d: [0;33mapp_main[0m[0m at [0;32mD:/ESP32Code/speech_commands_recognition_with_llm/main/main.cc[0m[0m:[1;31m950[0m
+[0m--- 0x42117504: [0;33mmain_task[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/freertos/app_startup.c[0m[0m:[1;31m208[0m
+[0m--- 0x403834b5: [0;33mvPortTaskWrapper[0m[0m at [0;32mD:/Espressif/frameworks/esp-idf-v5.5/components/freertos/FreeRTOS-Kernel/portable/xtensa/port.c[0m[0m:[1;31m139[0m
+[0m

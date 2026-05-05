@@ -25,6 +25,7 @@ import sys
 from datetime import datetime
 
 import websockets
+from zeroconf import Zeroconf, ServiceInfo
 
 # 把 server/ 目录加入路径，让子模块的绝对导入正常工作
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -75,8 +76,6 @@ async def handle_connection(websocket) -> None:
     audio_buffer = bytearray()
     recording = False
     history: list[dict] = []      # 本连接的对话历史
-    prev_scene = ""               # 上轮场景 ID（用于短语句场景继承）
-    classify_context: list[str] = []  # 场景分类上下文累积（跨轮共享）
 
     try:
         async for message in websocket:
@@ -110,32 +109,28 @@ async def handle_connection(websocket) -> None:
                     duration = len(pcm) / (config.SAMPLE_RATE * 2)
                     print(f"[{client_ip}] 录音结束，时长 {duration:.2f}s，大小 {len(pcm)} bytes")
 
-                    # ── 全链路处理：ASR → 分类 → LLM → TTS ──
-                    user_text, scene, reply_parts, audio_gen = await orchestrator.process(
-                        pcm, history, prev_scene, classify_context
+                    # ── 全链路处理：ASR → LLM（内联场景分类）→ TTS ──
+                    user_text, reply_parts, scene_id, audio_gen = await orchestrator.process(
+                        pcm, history
                     )
 
                     # 保存 debug 音频
-                    debug_path = _save_debug_wav(pcm, user_text)
-                    print(f"[DEBUG] 录音已保存: {debug_path}")
+                    _save_debug_wav(pcm, user_text)
 
                     if user_text:
-                        prev_scene = scene  # 记住本轮场景
                         # 流式发送 TTS 音频给 ESP32
-                        chunk_count = 0
                         async for chunk in audio_gen:
                             await websocket.send(chunk)
-                            chunk_count += 1
 
                         # 发送 ping 作为音频结束信号
-                        # ESP32 的 AudioManager 收到 ping 后触发 finishStreamingPlayback()
                         await websocket.ping()
 
-                        # 更新对话历史
+                        # 更新对话历史（带上场景标签，让 LLM 下一轮看到格式）
                         full_reply = "".join(reply_parts)
+                        tagged = f"<scene>{scene_id[0]}</scene>\n{full_reply}" if scene_id[0] else full_reply
                         history.append({"role": "user", "content": user_text})
-                        history.append({"role": "assistant", "content": full_reply})
-                        print(f"[完成] 发送 {chunk_count} 个音频块，回复：{full_reply}")
+                        history.append({"role": "assistant", "content": tagged})
+                        print(f"[回复] {full_reply}")
                     else:
                         # ASR 未识别到语音，发送静音块 + ping 让 ESP32 继续工作
                         # 必须发送至少一个音频块，否则 ESP32 的 isStreamingActive() 为 false，ping 会被忽略
@@ -145,7 +140,7 @@ async def handle_connection(websocket) -> None:
                         await websocket.ping()
 
                 elif event == "recording_cancelled":
-                    print(f"[{client_ip}] 录音取消（本地命令词处理）")
+                    print(f"[{client_ip}] 录音取消（录音过短或用户未说话）")
                     recording = False
                     audio_buffer = bytearray()
 
@@ -184,16 +179,32 @@ async def main() -> None:
         for key in missing:
             print(f"  ⚠  未设置环境变量：{key}")
 
+    # ── mDNS 服务注册（让 ESP32 通过 xinou.local 自动发现） ──
     local_ip = get_local_ip()
-    print(f"\n  ESP32 填写地址：ws://{local_ip}:{config.WS_PORT}")
+    zc = Zeroconf()
+    service_info = ServiceInfo(
+        "_xinou._tcp.local.",
+        "心偶._xinou._tcp.local.",
+        addresses=[socket.inet_aton(local_ip)],
+        port=config.WS_PORT,
+        server="xinou.local.",
+    )
+    await zc.async_register_service(service_info)
+    print(f"\n  mDNS 已注册: xinou.local -> {local_ip}:{config.WS_PORT}")
+
+    print(f"\n  ESP32 填写地址：ws://xinou.local:{config.WS_PORT}")
     print(f"  ASR : {config.ASR_MODEL}")
     print(f"  LLM : {config.LLM_MODEL}  ({config.LLM_BASE_URL})")
     print(f"  TTS : {config.TTS_MODEL} / {config.TTS_VOICE}")
     print("=" * 55)
     print("  等待 ESP32 连接...\n")
 
-    async with websockets.serve(handle_connection, config.WS_HOST, config.WS_PORT):
-        await asyncio.Future()  # 永久运行
+    try:
+        async with websockets.serve(handle_connection, config.WS_HOST, config.WS_PORT):
+            await asyncio.Future()  # 永久运行
+    finally:
+        await zc.async_unregister_service(service_info)
+        await zc.async_close()
 
 
 if __name__ == "__main__":
