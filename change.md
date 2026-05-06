@@ -391,3 +391,46 @@ LLM 输出示例：
 - 数据跨越末尾时：两段 memcpy（尾部 + 头部）
 
 逻辑等价，代码更规范，减少不必要的函数调用开销。
+
+---
+
+## 2026-05-05
+
+### 修复：连续对话模式下录音严重丢帧导致 ASR 识别错误
+
+**影响文件：** `main/main.cc`
+
+**问题描述：**
+
+首句（唤醒后）的录音和 ASR 识别完全正常，但从第二句开始（连续对话模式），录出的音频严重失真，ASR 识别结果与用户实际说的话大相径庭。例如用户说"今天是几月几号"，ASR 识别为"1234567"等乱码。
+
+**根本原因：**
+
+首句和后续句的关键差异在于 `multinet->detect()` 的调用：
+
+- **首句**：`is_continuous_conversation == false`，不执行 MultiNet 推理
+- **后续句**：`is_continuous_conversation == true`，每帧都调用 `multinet->detect()`（神经网络推理，耗时 10-30ms/帧）
+
+每帧音频只有 **30ms** 的处理时间预算（`wakenet->get_samp_chunksize()` = 480 样本）：
+
+| 处理步骤 | 耗时 |
+|---|---|
+| NSNet 降噪 | ~5-10ms |
+| MultiNet 推理 | **~10-30ms** |
+| VAD + 其他 | ~3-5ms |
+| vTaskDelay(1) | ~1ms |
+
+首句总耗时约 15ms < 30ms，安全。连续对话模式总耗时 20-45ms，**经常超过 30ms**，导致主循环来不及从 I2S DMA 读取下一帧，DMA 缓冲区溢出，音频数据被覆盖 → 帧丢失 → 录出的 PCM 数据残缺不全 → ASR 识别结果面目全非。
+
+**修改内容：**
+
+直接删除 MultiNet 本地命令词识别功能。该项目已无需本地命令词（所有指令通过云端 LLM 理解），删除后帧预算从 20-45ms 降至 ~15ms，不再触发 I2S DMA 溢出。
+
+删除的内容包括：
+- `esp_mn_iface.h` / `esp_mn_models.h` / `esp_mn_speech_commands.h` 头文件引用
+- `custom_commands` 命令词配置表
+- `COMMAND_TURN_ON_LIGHT` / `COMMAND_TURN_OFF_LIGHT` / `COMMAND_BYE_BYE` / `COMMAND_CUSTOM` 宏定义
+- `configure_custom_commands()` 函数
+- `multinet` / `mn_model_data` / `command_timeout_start` 全局变量
+- `STATE_RECORDING` 中整个 MultiNet 检测及命令执行分支（~90 行）
+- `STATE_WAITING_RESPONSE` 中 `multinet->clean()` 重置调用

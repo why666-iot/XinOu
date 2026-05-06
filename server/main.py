@@ -125,11 +125,12 @@ async def handle_connection(websocket) -> None:
                         # 发送 ping 作为音频结束信号
                         await websocket.ping()
 
-                        # 更新对话历史（带上场景标签，让 LLM 下一轮看到格式）
+                        # 更新对话历史（只保存纯文本回复，不含 tool_call 细节）
                         full_reply = "".join(reply_parts)
-                        tagged = f"<scene>{scene_id[0]}</scene>\n{full_reply}" if scene_id[0] else full_reply
                         history.append({"role": "user", "content": user_text})
-                        history.append({"role": "assistant", "content": tagged})
+                        history.append({"role": "assistant", "content": full_reply})
+                        if scene_id[0]:
+                            print(f"[场景] {scene_id[0]}")
                         print(f"[回复] {full_reply}")
                     else:
                         # ASR 未识别到语音，发送静音块 + ping 让 ESP32 继续工作

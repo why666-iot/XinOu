@@ -56,8 +56,27 @@ def _load_all() -> None:
 
 
 def get_unified_prompt() -> str:
-    """返回统一系统提示词（含角色设定 + 所有场景指南 + 两阶段输出格式）"""
+    """返回统一系统提示词（已废弃，保留以备回滚）"""
     return _cache.get("unified", "")
+
+
+def get_base_prompt() -> str:
+    """返回基础人格设定提示词（base.txt）"""
+    return _cache.get("base", "")
+
+
+def get_scene_content(scene: str) -> str:
+    """返回场景提示词原文（供 tool calling 返回给 LLM）
+
+    参数：
+        scene : 场景 ID（如 "emotion/anxiety"）
+
+    返回：
+        场景提示词文本，若场景无效则返回 daily 场景内容
+    """
+    if scene not in VALID_SCENES:
+        scene = "daily"
+    return _cache.get(scene, "")
 
 
 def get_classifier_prompt() -> str:

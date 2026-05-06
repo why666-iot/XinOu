@@ -1,22 +1,22 @@
 """
-Orchestrator：串联 ASR → LLM → TTS 全链路
+Orchestrator：串联 ASR → LLM（Tool Calling）→ TTS 全链路
 
 数据流：
     PCM bytes
-      → ASR.transcribe()           → 用户文字
-      → LLM.stream_chat()          → token 流（首行含 <scene>场景ID</scene>）
-      → 场景标签解析                → 提取场景 ID（仅用于日志，不送 TTS）
-      → 句子切分                    → 逐句送 TTS
-      → TTS.synthesize_stream()    → PCM 音频流（实时 yield 给 ESP32）
+      → ASR.transcribe()                      → 用户文字
+      → LLM.stream_chat_with_tools()          → LLM 决策
+        ├─ tool_call select_scene(scene_id)    → 获取场景提示词 → 第二次流式调用
+        └─ 直接输出文本 token                   → 简单问候/闲聊
+      → 句子切分                                → 逐句送 TTS
+      → TTS.synthesize_stream()               → PCM 音频流（实时 yield 给 ESP32）
 
 架构说明：
-    场景分类已内嵌到 system prompt（unified.txt），LLM 在单次流式调用中：
-      第一步：输出 <scene>场景ID</scene>（内联分类，不送 TTS）
-      第二步：紧接着输出正常回复（送 TTS）
-
-    对比旧架构（两次 LLM 调用）：省去约 0.3-0.5s 的分类延迟，且效果更好，
-    因为 LLM 在同一上下文中完成理解和回复，无缝衔接。
+    使用 OpenAI Function Calling（DeepSeek 兼容）让 LLM 自主调用 select_scene
+    工具获取场景专属提示词。LLM 根据用户话语自行决定是否需要场景指南：
+      - 有情绪/场景话题：调用 select_scene → 获取提示词 → 第二次调用生成回复
+      - 简单问候/闲聊：跳过工具直接回复（仅靠 base.txt 人格设定）
 """
+import json
 import os
 import re
 import sys
@@ -30,8 +30,31 @@ from modules import asr, llm, tts, prompt_loader
 _SENT_END_RE = re.compile(r"[。！？!?…]")
 _MIN_SENTENCE_LEN = 6  # 少于 6 字不切分，等待更多 token
 
-# <scene>...</scene> 最大收集长度（超过此长度视为 LLM 未按格式输出）
-_SCENE_TAG_MAX_LEN = 80
+# ── Tool 定义 ────────────────────────────────────────────────────
+SCENE_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "select_scene",
+        "description": "根据用户当前的情感状态和话题，选择最匹配的情感场景，获取该场景的专属回复指南。当用户表达了明确的情绪困扰或特定话题时调用。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "scene_id": {
+                    "type": "string",
+                    "enum": sorted(prompt_loader.VALID_SCENES),
+                    "description": "最匹配的情感场景ID",
+                }
+            },
+            "required": ["scene_id"],
+        },
+    },
+}
+
+# 追加到 system prompt 的工具使用指引
+_TOOL_INSTRUCTION = """
+
+## 场景工具
+你可以调用 select_scene 工具来获取特定情感场景的回复指南。当用户表达了明确的情绪困扰、工作压力、家庭矛盾等话题时，调用工具获取专属指南再回复，效果更好。如果只是简单的打招呼或闲聊，直接回复即可。"""
 
 
 def _pop_sentence(buf: str) -> tuple[str, str]:
@@ -75,59 +98,25 @@ async def process(
 
     print(f"[ASR] {user_text}")
 
-    # ── Step 2: 拼接 messages（统一 prompt，无需预先选场景）──
-    system_prompt = prompt_loader.get_unified_prompt()
+    # ── Step 2: 拼接 messages（base.txt + 工具指引）──────────
+    base_prompt = prompt_loader.get_base_prompt()
+    system_prompt = base_prompt + _TOOL_INSTRUCTION
     messages: list[dict] = [{"role": "system", "content": system_prompt}]
-    recent = history[-(config.MAX_HISTORY_TURNS * 2):]
+    recent = history[-(config.MAX_HISTORY_TURNS * 2) :]
     messages.extend(recent)
     messages.append({"role": "user", "content": user_text})
 
-    # ── Step 3: LLM 流式输出 → 解析场景标签 → 句子切分 → TTS 流式合成 ──
+    # ── Step 3: LLM 流式输出 → Tool Calling → 句子切分 → TTS ──
     reply_parts: list[str] = []
     scene_id: list[str] = [""]  # 用 list 包装，方便闭包内写入
 
     async def audio_gen() -> AsyncIterator[bytes]:
-        scene_buf = ""
-        scene_done = False
         sentence_buf = ""
 
-        try:
-            async for token in llm.stream_chat(messages):
-                if not scene_done:
-                    scene_buf += token
-
-                    if "</scene>" in scene_buf:
-                        end_idx = scene_buf.index("</scene>") + len("</scene>")
-                        m = re.search(r"<scene>(.*?)</scene>", scene_buf[:end_idx])
-                        if m:
-                            candidate = m.group(1).strip()
-                            if candidate in prompt_loader.VALID_SCENES:
-                                scene_id[0] = candidate
-
-                        rest = scene_buf[end_idx:].lstrip("\n")
-                        scene_done = True
-                        scene_buf = ""
-
-                        if rest:
-                            reply_parts.append(rest)
-                            sentence_buf += rest
-                            sentence, sentence_buf = _pop_sentence(sentence_buf)
-                            if sentence:
-                                async for chunk in tts.synthesize_stream(sentence):
-                                    yield chunk
-                        continue
-
-                    if len(scene_buf) > _SCENE_TAG_MAX_LEN:
-                        scene_done = True
-                        reply_parts.append(scene_buf)
-                        sentence_buf += scene_buf
-                        scene_buf = ""
-                        sentence, sentence_buf = _pop_sentence(sentence_buf)
-                        if sentence:
-                            async for chunk in tts.synthesize_stream(sentence):
-                                yield chunk
-                    continue
-
+        async def _process_tokens(token_stream) -> AsyncIterator[bytes]:
+            """处理 token 流：句子切分 → TTS"""
+            nonlocal sentence_buf
+            async for token in token_stream:
                 reply_parts.append(token)
                 sentence_buf += token
                 sentence, sentence_buf = _pop_sentence(sentence_buf)
@@ -135,11 +124,74 @@ async def process(
                     async for chunk in tts.synthesize_stream(sentence):
                         yield chunk
 
+        try:
+            # 第一次调用：带 tools
+            async for event_type, data in llm.stream_chat_with_tools(
+                messages, [SCENE_TOOL]
+            ):
+                if event_type == "tool_call":
+                    # LLM 请求调用 select_scene
+                    tool_name = data["name"]
+                    tool_args = data["arguments"]
+                    selected_scene = tool_args.get("scene_id", "daily")
+
+                    # 校验场景 ID
+                    if selected_scene not in prompt_loader.VALID_SCENES:
+                        selected_scene = "daily"
+
+                    scene_id[0] = selected_scene
+                    print(f"[TOOL] {tool_name} → {selected_scene}")
+
+                    # 获取场景提示词内容
+                    scene_content = prompt_loader.get_scene_content(selected_scene)
+
+                    # 构建完整 messages（含 tool_call + tool result）
+                    extended_messages = list(messages) + [
+                        {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "id": "call_scene",
+                                    "type": "function",
+                                    "function": {
+                                        "name": tool_name,
+                                        "arguments": json.dumps(
+                                            tool_args, ensure_ascii=False
+                                        ),
+                                    },
+                                }
+                            ],
+                        },
+                        {
+                            "role": "tool",
+                            "tool_call_id": "call_scene",
+                            "content": scene_content,
+                        },
+                    ]
+
+                    # 第二次调用：带场景提示词，流式生成回复
+                    async for chunk in _process_tokens(
+                        llm.stream_chat_continue(extended_messages)
+                    ):
+                        yield chunk
+
+                elif event_type == "token":
+                    # LLM 直接回复（无需工具调用）
+                    reply_parts.append(data)
+                    sentence_buf += data
+                    sentence, sentence_buf = _pop_sentence(sentence_buf)
+                    if sentence:
+                        async for chunk in tts.synthesize_stream(sentence):
+                            yield chunk
+
         except Exception as e:
             print(f"[!] LLM 调用异常: {e}")
             import traceback
+
             traceback.print_exc()
 
+        # 尾部残余文本
         tail = sentence_buf.strip()
         if tail:
             async for chunk in tts.synthesize_stream(tail):
