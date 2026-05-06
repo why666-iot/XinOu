@@ -109,8 +109,8 @@ async def handle_connection(websocket) -> None:
                     duration = len(pcm) / (config.SAMPLE_RATE * 2)
                     print(f"[{client_ip}] 录音结束，时长 {duration:.2f}s，大小 {len(pcm)} bytes")
 
-                    # ── 全链路处理：ASR → LLM（内联场景分类）→ TTS ──
-                    user_text, reply_parts, scene_id, audio_gen = await orchestrator.process(
+                    # ── 全链路处理：ASR → LLM（Tool Calling）→ TTS ──
+                    user_text, reply_parts, scene_id, goodbye, audio_gen = await orchestrator.process(
                         pcm, history
                     )
 
@@ -125,8 +125,13 @@ async def handle_connection(websocket) -> None:
                         # 发送 ping 作为音频结束信号
                         await websocket.ping()
 
-                        # 更新对话历史（只保存纯文本回复，不含 tool_call 细节）
-                        full_reply = "".join(reply_parts)
+                        # 如果 LLM 判断用户想结束对话，发送 goodbye 事件
+                        if goodbye[0]:
+                            await websocket.send(json.dumps({"event": "goodbye"}))
+                            print("[会话] 发送 goodbye 信号")
+
+                        # 更新对话历史（清理 [END] 标记，只保存纯文本回复）
+                        full_reply = "".join(reply_parts).replace("[END]", "").strip()
                         history.append({"role": "user", "content": user_text})
                         history.append({"role": "assistant", "content": full_reply})
                         if scene_id[0]:

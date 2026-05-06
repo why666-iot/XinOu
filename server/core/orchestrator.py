@@ -7,6 +7,7 @@ Orchestrator：串联 ASR → LLM（Tool Calling）→ TTS 全链路
       → LLM.stream_chat_with_tools()          → LLM 决策
         ├─ tool_call select_scene(scene_id)    → 获取场景提示词 → 第二次流式调用
         └─ 直接输出文本 token                   → 简单问候/闲聊
+      → token 流中检测 [END] 标记              → 标记 goodbye，剥离标记不送 TTS
       → 句子切分                                → 逐句送 TTS
       → TTS.synthesize_stream()               → PCM 音频流（实时 yield 给 ESP32）
 
@@ -15,6 +16,9 @@ Orchestrator：串联 ASR → LLM（Tool Calling）→ TTS 全链路
     工具获取场景专属提示词。LLM 根据用户话语自行决定是否需要场景指南：
       - 有情绪/场景话题：调用 select_scene → 获取提示词 → 第二次调用生成回复
       - 简单问候/闲聊：跳过工具直接回复（仅靠 base.txt 人格设定）
+
+    结束对话：LLM 在回复末尾输出 [END] 标记，服务端检测到后通知 ESP32 结束对话。
+    LLM 的告别话正常播放完毕后，ESP32 回到唤醒状态。
 """
 import json
 import os
@@ -29,6 +33,9 @@ from modules import asr, llm, tts, prompt_loader
 # 句子结束标点（中英文均支持）
 _SENT_END_RE = re.compile(r"[。！？!?…]")
 _MIN_SENTENCE_LEN = 6  # 少于 6 字不切分，等待更多 token
+
+# 结束对话标记
+_END_MARKER = "[END]"
 
 # ── Tool 定义 ────────────────────────────────────────────────────
 SCENE_TOOL = {
@@ -50,11 +57,14 @@ SCENE_TOOL = {
     },
 }
 
-# 追加到 system prompt 的工具使用指引
+# 追加到 system prompt 的工具使用指引 + 结束对话规则
 _TOOL_INSTRUCTION = """
 
 ## 场景工具
-你可以调用 select_scene 工具来获取特定情感场景的回复指南。当用户表达了明确的情绪困扰、工作压力、家庭矛盾等话题时，调用工具获取专属指南再回复，效果更好。如果只是简单的打招呼或闲聊，直接回复即可。"""
+你可以调用 select_scene 工具来获取特定情感场景的回复指南。当用户表达了明确的情绪困扰、工作压力、家庭矛盾等话题时，调用工具获取专属指南再回复，效果更好。如果只是简单的打招呼或闲聊，直接回复即可。
+
+## 结束对话
+当你判断用户想结束对话时（比如说了再见、拜拜、晚安、不聊了、我去忙了，或者语气暗示想结束），你正常回复一句自然的告别，然后在回复的最末尾加上标记 [END]。注意：[END] 不会被用户听到，它只是给系统的信号。只在你确定用户想结束时才加。"""
 
 
 def _pop_sentence(buf: str) -> tuple[str, str]:
@@ -78,7 +88,7 @@ async def _empty_audio() -> AsyncIterator[bytes]:
 async def process(
     pcm_bytes: bytes,
     history: list[dict],
-) -> tuple[str, list[str], list[str], AsyncIterator[bytes]]:
+) -> tuple[str, list[str], list[str], list[bool], AsyncIterator[bytes]]:
     """全链路处理入口
 
     参数：
@@ -89,12 +99,13 @@ async def process(
         user_text   : ASR 识别的用户文字（若为空表示未识别到语音）
         reply_parts : LLM 回复的 token 片段列表（消费完 audio_gen 后可拼接）
         scene_id    : [scene_string]，可变列表，audio_gen 消费后 scene_id[0] 被填充
+        goodbye     : [bool]，可变列表，audio_gen 消费后 goodbye[0] 表示是否需要结束对话
         audio_gen   : async generator，逐块 yield PCM 音频数据
     """
     # ── Step 1: ASR ──────────────────────────────────────────
     user_text = await asr.transcribe(pcm_bytes)
     if not user_text:
-        return "", [], [""], _empty_audio()
+        return "", [], [""], [False], _empty_audio()
 
     print(f"[ASR] {user_text}")
 
@@ -106,22 +117,57 @@ async def process(
     messages.extend(recent)
     messages.append({"role": "user", "content": user_text})
 
-    # ── Step 3: LLM 流式输出 → Tool Calling → 句子切分 → TTS ──
+    # ── Step 3: LLM 流式输出 → Tool Calling → [END]检测 → 句子切分 → TTS ──
     reply_parts: list[str] = []
     scene_id: list[str] = [""]  # 用 list 包装，方便闭包内写入
+    goodbye: list[bool] = [False]
 
     async def audio_gen() -> AsyncIterator[bytes]:
         sentence_buf = ""
+        end_found = False  # 标记是否已检测到 [END]
 
-        async def _process_tokens(token_stream) -> AsyncIterator[bytes]:
-            """处理 token 流：句子切分 → TTS"""
-            nonlocal sentence_buf
-            async for token in token_stream:
+        def _check_and_strip_end(text: str) -> tuple[str, bool]:
+            """检查文本中是否包含 [END]，返回 (清理后文本, 是否找到)"""
+            if _END_MARKER in text:
+                clean = text.split(_END_MARKER)[0]
+                return clean, True
+            return text, False
+
+        async def _send_sentence(sentence: str) -> AsyncIterator[bytes]:
+            """送一句话给 TTS，先检查并剥离 [END]"""
+            nonlocal end_found
+            sentence, found = _check_and_strip_end(sentence)
+            if found:
+                end_found = True
+                goodbye[0] = True
+                print("[END] 检测到结束对话标记")
+            sentence = sentence.strip()
+            if sentence and any('\u4e00' <= c <= '\u9fff' or c.isalnum() for c in sentence):
+                async for chunk in tts.synthesize_stream(sentence):
+                    yield chunk
+
+        async def _consume_tokens(token_source) -> AsyncIterator[bytes]:
+            """从 token 源读取，累积→切句→送 TTS。"""
+            nonlocal sentence_buf, end_found
+            async for token in token_source:
+                if end_found:
+                    break  # [END] 已检测到，丢弃后续 token
+
                 reply_parts.append(token)
                 sentence_buf += token
+
+                # 在 sentence_buf 上检测 [END]（处理跨 token 的情况）
+                if _END_MARKER in sentence_buf:
+                    sentence_buf = sentence_buf.split(_END_MARKER)[0]
+                    end_found = True
+                    goodbye[0] = True
+                    print("[END] 检测到结束对话标记")
+                    # 把剩余文本当最后一句处理，不再切分
+                    break
+
                 sentence, sentence_buf = _pop_sentence(sentence_buf)
                 if sentence:
-                    async for chunk in tts.synthesize_stream(sentence):
+                    async for chunk in _send_sentence(sentence):
                         yield chunk
 
         try:
@@ -129,23 +175,23 @@ async def process(
             async for event_type, data in llm.stream_chat_with_tools(
                 messages, [SCENE_TOOL]
             ):
+                if end_found:
+                    break
+
                 if event_type == "tool_call":
                     # LLM 请求调用 select_scene
                     tool_name = data["name"]
                     tool_args = data["arguments"]
                     selected_scene = tool_args.get("scene_id", "daily")
 
-                    # 校验场景 ID
                     if selected_scene not in prompt_loader.VALID_SCENES:
                         selected_scene = "daily"
 
                     scene_id[0] = selected_scene
-                    print(f"[TOOL] {tool_name} → {selected_scene}")
+                    print(f"[TOOL] select_scene → {selected_scene}")
 
-                    # 获取场景提示词内容
                     scene_content = prompt_loader.get_scene_content(selected_scene)
 
-                    # 构建完整 messages（含 tool_call + tool result）
                     extended_messages = list(messages) + [
                         {
                             "role": "assistant",
@@ -171,7 +217,7 @@ async def process(
                     ]
 
                     # 第二次调用：带场景提示词，流式生成回复
-                    async for chunk in _process_tokens(
+                    async for chunk in _consume_tokens(
                         llm.stream_chat_continue(extended_messages)
                     ):
                         yield chunk
@@ -180,9 +226,18 @@ async def process(
                     # LLM 直接回复（无需工具调用）
                     reply_parts.append(data)
                     sentence_buf += data
+
+                    # 在 sentence_buf 上检测 [END]
+                    if _END_MARKER in sentence_buf:
+                        sentence_buf = sentence_buf.split(_END_MARKER)[0]
+                        end_found = True
+                        goodbye[0] = True
+                        print("[END] 检测到结束对话标记")
+                        break
+
                     sentence, sentence_buf = _pop_sentence(sentence_buf)
                     if sentence:
-                        async for chunk in tts.synthesize_stream(sentence):
+                        async for chunk in _send_sentence(sentence):
                             yield chunk
 
         except Exception as e:
@@ -193,8 +248,8 @@ async def process(
 
         # 尾部残余文本
         tail = sentence_buf.strip()
-        if tail:
+        if tail and any('\u4e00' <= c <= '\u9fff' or c.isalnum() for c in tail):
             async for chunk in tts.synthesize_stream(tail):
                 yield chunk
 
-    return user_text, reply_parts, scene_id, audio_gen()
+    return user_text, reply_parts, scene_id, goodbye, audio_gen()

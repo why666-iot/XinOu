@@ -1,7 +1,7 @@
 {
     "version":            "1.2",
     "project_name":       "speech_commands_recognition",
-    "project_version":    "0bb1bdc-dirty",
+    "project_version":    "6626c6f-dirty",
     "project_path":       "D:/ESP32Code/speech_commands_recognition_with_llm",
     "idf_path":           "D:/Espressif/frameworks/esp-idf-v5.5",
     "build_dir":          "D:/ESP32Code/speech_commands_recognition_with_llm/build",

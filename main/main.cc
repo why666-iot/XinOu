@@ -161,6 +161,9 @@ static TickType_t response_wait_start = 0;
 // WebSocket重连后是否需要重发录音数据
 static bool needs_ws_resend = false;
 
+// 服务器发送的 goodbye 信号：LLM 判断用户想结束对话，播放完毕后执行退出
+volatile bool goodbye_requested = false;
+
 // 实时流式传输发送缓冲区（攒满再发，减少WebSocket帧频率和TCP压力）
 #define STREAM_SEND_BUF_SIZE 4096
 static uint8_t stream_send_buf[STREAM_SEND_BUF_SIZE];
@@ -236,7 +239,7 @@ static void on_websocket_event(const WebSocketClient::EventData& event)
         break;
 
     case WebSocketClient::EventType::DATA_TEXT:
-        // JSON数据处理（用于其他事件）
+        // JSON数据处理（服务器下行事件）
         if (event.data && event.data_len > 0) {
             // 创建临时缓冲区
             char *json_str = (char *)malloc(event.data_len + 1);
@@ -244,6 +247,13 @@ static void on_websocket_event(const WebSocketClient::EventData& event)
                 memcpy(json_str, event.data, event.data_len);
                 json_str[event.data_len] = '\0';
                 ESP_LOGI(TAG, "收到JSON消息: %s", json_str);
+
+                // 解析 goodbye 事件：LLM 判断用户想结束对话
+                if (strstr(json_str, "\"event\"") && strstr(json_str, "\"goodbye\"")) {
+                    ESP_LOGI(TAG, "👋 收到 goodbye 信号，播放完毕后将结束对话");
+                    goodbye_requested = true;
+                }
+
                 free(json_str);
             }
         }
@@ -431,6 +441,7 @@ static void execute_exit_logic(void)
     vad_speech_detected = false;
     vad_silence_frames = 0;
     needs_ws_resend = false;  // 退出对话时清除重发标志
+    goodbye_requested = false;  // 清除 goodbye 标志
     
     ESP_LOGI(TAG, "返回等待唤醒状态，请说出唤醒词 'Hi,ESP'");
 }
@@ -1017,6 +1028,31 @@ extern "C" void app_main(void)
             // 这里只需要检查播放是否完成
             if (audio_manager->isResponsePlayed())
             {
+                // 检查是否收到了 goodbye 信号
+                if (goodbye_requested) {
+                    ESP_LOGI(TAG, "👋 AI告别回复播放完毕，回到待唤醒状态");
+                    goodbye_requested = false;
+
+                    // 直接回到唤醒状态（LLM 的告别话已经播完了，不再播 bye 音频）
+                    if (websocket_client != nullptr) {
+                        websocket_client->disconnect();
+                    }
+                    current_state = STATE_WAITING_WAKEUP;
+                    if (audio_manager != nullptr) {
+                        audio_manager->stopRecording();
+                        audio_manager->clearRecordingBuffer();
+                    }
+                    is_continuous_conversation = false;
+                    user_started_speaking = false;
+                    recording_timeout_start = 0;
+                    vad_speech_detected = false;
+                    vad_silence_frames = 0;
+                    needs_ws_resend = false;
+
+                    ESP_LOGI(TAG, "返回等待唤醒状态，请说出唤醒词 'Hi,ESP'");
+                }
+                else
+                {
                 // 🔁 AI回复完毕，进入连续对话模式
                 // 通知服务器准备接收下一轮对话
                 if (websocket_client != nullptr && websocket_client->isConnected())
@@ -1038,6 +1074,7 @@ extern "C" void app_main(void)
                 // 重置VAD触发器状态
                 vad_reset_trigger(vad_inst);
                 ESP_LOGI(TAG, "进入连续对话模式，请在%d秒内继续说话...", RECORDING_TIMEOUT_MS / 1000);
+                }
             }
             else
             {

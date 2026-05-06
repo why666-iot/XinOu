@@ -1,0 +1,988 @@
+Command: D:\Espressif\python_env\idf5.5_py3.10_env\Scripts\python.exe D:\Espressif\frameworks\esp-idf-v5.5\tools/idf_monitor.py -p com17 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 D:\ESP32Code\speech_commands_recognition_with_llm\build\speech_commands_recognition.elf D:\ESP32Code\speech_commands_recognition_with_llm\build\bootloader\bootloader.elf --force-color -m 'D:\Espressif\python_env\idf5.5_py3.10_env\Scripts\python.exe' 'D:\Espressif\frameworks\esp-idf-v5.5\tools\idf.py'
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x159c
+load:0x403c8700,len:0xd24
+load:0x403cb700,len:0x2f48
+entry 0x403c8924
+[0;32mI (24) boot: ESP-IDF v5.5 2nd stage bootloader[0m
+[0;32mI (25) boot: compile time May  3 2026 10:36:32[0m
+[0;32mI (25) boot: Multicore bootloader[0m
+[0;32mI (25) boot: chip revision: v0.2[0m
+[0;32mI (27) boot: efuse block revision: v1.4[0m
+[0;32mI (31) boot.esp32s3: Boot SPI Speed : 80MHz[0m
+[0;32mI (35) boot.esp32s3: SPI Mode       : DIO[0m
+[0;32mI (39) boot.esp32s3: SPI Flash Size : 8MB[0m
+[0;32mI (42) boot: Enabling RNG early entropy source...[0m
+[0;32mI (47) boot: Partition Table:[0m
+[0;32mI (50) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (62) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (69) boot:  2 factory          factory app      00 00 00010000 00226000[0m
+[0;32mI (75) boot:  3 model            Unknown data     01 82 00236000 0044c000[0m
+[0;32mI (82) boot: End of partition table[0m
+[0;32mI (85) esp_image: segment 0: paddr=00010020 vaddr=3c110020 size=3e97ch (256380) map[0m
+[0;32mI (138) esp_image: segment 1: paddr=0004e9a4 vaddr=3fca1000 size=01674h (  5748) load[0m
+[0;32mI (139) esp_image: segment 2: paddr=00050020 vaddr=42000020 size=103cd0h (1064144) map[0m
+[0;32mI (329) esp_image: segment 3: paddr=00153cf8 vaddr=3fca2674 size=0563ch ( 22076) load[0m
+[0;32mI (334) esp_image: segment 4: paddr=0015933c vaddr=40374000 size=1cf14h (118548) load[0m
+[0;32mI (360) esp_image: segment 5: paddr=00176258 vaddr=600fe000 size=00020h (    32) load[0m
+[0;32mI (372) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (372) boot: Disabling RNG early entropy source...[0m
+[0;32mI (382) octal_psram: vendor id    : 0x0d (AP)[0m
+[0;32mI (382) octal_psram: dev id       : 0x02 (generation 3)[0m
+[0;32mI (383) octal_psram: density      : 0x03 (64 Mbit)[0m
+[0;32mI (385) octal_psram: good-die     : 0x01 (Pass)[0m
+[0;32mI (389) octal_psram: Latency      : 0x01 (Fixed)[0m
+[0;32mI (393) octal_psram: VCC          : 0x01 (3V)[0m
+[0;32mI (397) octal_psram: SRF          : 0x01 (Fast Refresh)[0m
+[0;32mI (402) octal_psram: BurstType    : 0x01 (Hybrid Wrap)[0m
+[0;32mI (407) octal_psram: BurstLen     : 0x01 (32 Byte)[0m
+[0;32mI (412) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)[0m
+[0;32mI (417) octal_psram: DriveStrength: 0x00 (1/1)[0m
+[0;32mI (421) esp_psram: Found 8MB PSRAM device[0m
+[0;32mI (425) esp_psram: Speed: 40MHz[0m
+[0;32mI (428) cpu_start: Multicore app[0m
+[0;32mI (1162) esp_psram: SPI SRAM memory test OK[0m
+[0;32mI (1170) cpu_start: Pro cpu start user code[0m
+[0;32mI (1170) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (1171) app_init: Application information:[0m
+[0;32mI (1171) app_init: Project name:     speech_commands_recognition[0m
+[0;32mI (1177) app_init: App version:      6626c6f-dirty[0m
+[0;32mI (1181) app_init: Compile time:     May  6 2026 11:52:37[0m
+[0;32mI (1186) app_init: ELF file SHA256:  88000aa5b...[0m
+[0;32mI (1191) app_init: ESP-IDF:          v5.5[0m
+[0;32mI (1194) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (1198) efuse_init: Max chip rev:     v0.99 [0m
+[0;32mI (1202) efuse_init: Chip rev:         v0.2[0m
+[0;32mI (1206) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1213) heap_init: At 3FCB12D8 len 00038438 (225 KiB): RAM[0m
+[0;32mI (1218) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM[0m
+[0;32mI (1223) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM[0m
+[0;32mI (1228) heap_init: At 600FE020 len 00001FC8 (7 KiB): RTCRAM[0m
+[0;32mI (1234) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator[0m
+[0;32mI (1241) spi_flash: detected chip: boya[0m
+[0;32mI (1244) spi_flash: flash io: dio[0m
+[0;32mI (1247) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (1254) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (1260) coexist: coex firmware version: 831ec70[0m
+[0;32mI (1284) coexist: coexist rom version e7ae62f[0m
+[0;32mI (1285) main_task: Started on CPU0[0m
+[0;32mI (1295) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+[0;32mI (1295) main_task: Calling app_main()[0m
+[0;32mI (1315) NVS_Config: 从 NVS 加载配置...[0m
+[0;32mI (1315) NVS_Config: NVS 配置加载完成: SSID=ubuntu, Password长度=9, WS_URI=ws://10.209.155.181:8888[0m
+[0;32mI (1315) 语音识别: 启动 BLE 配网服务...[0m
+[0;32mI (1325) BLE_INIT: BT controller compile version [4713a69][0m
+[0;32mI (1325) BLE_INIT: Feature Config, ADV:1, BLE_50:1, DTM:1, SCAN:1, CCA:0, SMP:1, CONNECT:1[0m
+[0;32mI (1335) BLE_INIT: Bluetooth MAC: e8:f6:0a:85:4c:02[0m
+[0;32mI (1345) phy_init: phy_version 701,f4f1da3a,Mar  3 2025,15:50:10[0m
+[0;32mI (1385) NimBLE: GAP procedure initiated: stop advertising.[0m
+
+[0;32mI (1395) NimBLE: Failed to restore IRKs from store; status=8[0m
+
+[0;32mI (1395) NimBLE: GAP procedure initiated: advertise; [0m
+[0;32mI (1395) NimBLE: disc_mode=2[0m
+[0;32mI (1395) NimBLE:  adv_channel_map=0 own_addr_type=0 adv_filter_policy=0 adv_itvl_min=160 adv_itvl_max=320[0m
+[0;32mI (1405) NimBLE: [0m
+
+[0;32mI (1405) BLE_Prov: 📡 BLE 广播已启动，设备名: XinOu-4C02[0m
+[0;32mI (1415) BLE_Prov: ✅ BLE 配网服务已启动，设备名: XinOu-4C02[0m
+[0;32mI (1415) 语音识别: 正在初始化外接LED (GPIO21)...[0m
+[0;32mI (1425) 语音识别: ✓ 外接LED初始化成功，初始状态：关闭[0m
+[0;32mI (1435) 语音识别: 正在连接WiFi...[0m
+[0;32mI (1435) pp: pp rom version: e7ae62f[0m
+[0;32mI (1435) net80211: net80211 rom version: e7ae62f[0m
+[0;32mI (1455) wifi:wifi driver task: 3fcc789c, prio:23, stack:6656, core=0[0m
+[0;32mI (1465) wifi:wifi firmware version: f3dbad7[0m
+[0;32mI (1465) wifi:wifi certification version: v7.0[0m
+[0;32mI (1465) wifi:config NVS flash: enabled[0m
+[0;32mI (1465) wifi:config nano formatting: disabled[0m
+[0;32mI (1465) wifi:Init data frame dynamic rx buffer num: 32[0m
+[0;32mI (1475) wifi:Init static rx mgmt buffer num: 5[0m
+[0;32mI (1475) wifi:Init management short buffer num: 32[0m
+[0;32mI (1475) wifi:Init dynamic tx buffer num: 32[0m
+[0;32mI (1485) wifi:Init static tx FG buffer num: 2[0m
+[0;32mI (1485) wifi:Init static rx buffer size: 1600[0m
+[0;32mI (1495) wifi:Init static rx buffer num: 10[0m
+[0;32mI (1495) wifi:Init dynamic rx buffer num: 32[0m
+[0;32mI (1505) wifi_init: rx ba win: 6[0m
+[0;32mI (1505) wifi_init: accept mbox: 6[0m
+[0;32mI (1505) wifi_init: tcpip mbox: 32[0m
+[0;32mI (1505) wifi_init: udp mbox: 6[0m
+[0;32mI (1515) wifi_init: tcp mbox: 6[0m
+[0;32mI (1515) wifi_init: tcp tx win: 5760[0m
+[0;32mI (1515) wifi_init: tcp rx win: 5760[0m
+[0;32mI (1525) wifi_init: tcp mss: 1440[0m
+[0;32mI (1525) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (1525) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;32mI (1535) wifi:mode : sta (e8:f6:0a:85:4c:00)[0m
+[0;32mI (1535) wifi:enable tsf[0m
+[0;32mI (1535) wifi:Set ps type: 0, coexist: 1[0m
+
+[0;32mI (1545) wifi:Coexist!!! Wi-Fi station would only keep waked when available[0m
+
+[0;32mI (1555) WiFiManager: 📶 WiFi初始化完成，正在连接到 ubuntu[0m
+[0;32mI (1555) wifi:new:<11,0>, old:<1,0>, ap:<255,255>, sta:<11,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (1565) wifi:state: init -> auth (0xb0)[0m
+[0;32mI (1575) wifi:state: auth -> init (0x1c0)[0m
+[0;32mI (1585) wifi:Coexist: Wi-Fi connect fail, apply reconnect coex policy[0m
+
+[0;32mI (1585) wifi:new:<11,0>, old:<11,0>, ap:<255,255>, sta:<11,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (1585) WiFiManager: 🔄 重试连接WiFi... (1/5)[0m
+[0;32mI (1585) WiFiManager: ❌ WiFi连接失败[0m
+[0;32mI (6405) wifi:Coexist: Wi-Fi connect fail, apply reconnect coex policy[0m
+
+[0;32mI (6405) WiFiManager: 🔄 重试连接WiFi... (2/5)[0m
+[0;32mI (6405) WiFiManager: ❌ WiFi连接失败[0m
+[0;32mI (6425) wifi:new:<11,0>, old:<11,0>, ap:<255,255>, sta:<11,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (6425) wifi:state: init -> auth (0xb0)[0m
+[0;32mI (6435) wifi:state: auth -> assoc (0x0)[0m
+[0;32mI (6465) wifi:state: assoc -> run (0x10)[0m
+[0;32mI (6485) wifi:connected with ubuntu, aid = 3, channel 11, BW20, bssid = 8e:4e:e6:e5:79:ff[0m
+[0;32mI (6485) wifi:security: WPA2-PSK, phy: bgn, rssi: -20[0m
+[0;32mI (6495) wifi:pm start, type: 0[0m
+
+[0;32mI (6495) wifi:dp: 1, bi: 102400, li: 3, scale listen interval from 307200 us to 307200 us[0m
+[0;32mI (6495) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000[0m
+[0;32mI (6505) wifi:dp: 2, bi: 102400, li: 4, scale listen interval from 307200 us to 409600 us[0m
+[0;32mI (6515) wifi:AP's beacon interval = 102400 us, DTIM period = 2[0m
+[0;32mI (6545) wifi:<ba-add>idx:0 (ifx:0, 8e:4e:e6:e5:79:ff), tid:0, ssn:1, winSize:64[0m
+[0;32mI (7545) esp_netif_handlers: sta ip: 10.209.155.185, mask: 255.255.255.0, gw: 10.209.155.32[0m
+[0;32mI (7545) WiFiManager: 🏠 获得IP地址:10.209.155.185[0m
+[0;32mI (7545) WiFiManager: ✅ WiFi连接成功: ubuntu[0m
+[0;32mI (7545) 语音识别: ✅ WiFi 已连接[0m
+[0;32mI (7555) 语音识别: 正在通过 mDNS 发现服务器...[0m
+[0;32mI (7645) 语音识别: mDNS 解析成功: xinou.local -> 10.209.155.181[0m
+[0;32mI (7645) WebSocketClient: 🌐 正在连接WebSocket服务器: ws://10.209.155.181:8888[0m
+[0;32mI (7655) websocket_client: Started[0m
+[0;32mI (7655) WebSocketClient: 🔄 尝试重新连接WebSocket...[0m
+[0;32mI (7655) WebSocketClient: ✅ 自动重连任务已启动[0m
+[0;32mI (7665) 语音识别: 正在初始化INMP441数字麦克风...[0m
+[0;32mI (7665) 语音识别: 音频参数: 16kHz采样率, 单声道, 16位[0m
+[0;32mI (7675) bsp_board: 🚀 正在初始化ESP32-S3-DevKitC-1 + INMP441麦克风[0m
+[0;32mI (7685) bsp_board: 🎵 音频参数: 采样率=16000Hz, 声道数=1, 位深=16位[0m
+[0;32mI (7755) bsp_board: I2S 初始化成功[0m
+[0;32mI (7755) 语音识别: ✓ INMP441麦克风初始化成功[0m
+[0;32mI (7755) 语音识别: 正在初始化音频播放功能...[0m
+[0;32mI (7755) 语音识别: 音频播放参数: 16kHz采样率, 单声道, 16位[0m
+[0;32mI (7765) bsp_board: ✅ MAX98357A SD引脚已初始化（GPIO8）[0m
+[0;32mI (7765) bsp_board: ✅ I2S音频播放初始化成功[0m
+[0;32mI (7775) 语音识别: ✓ 音频播放初始化成功[0m
+[0;32mI (7775) 语音识别: 正在初始化语音活动检测（VAD）...[0m
+[0;32mI (7785) 语音识别: ✓ VAD初始化成功[0m
+[0;32mI (7785) 语音识别:   - VAD模式: 1 (中等灵敏度)[0m
+[0;32mI (7795) 语音识别:   - 采样率: 16000 Hz[0m
+[0;32mI (7795) 语音识别:   - 帧长度: 30 ms[0m
+[0;32mI (7795) 语音识别:   - 最小语音时长: 200 ms[0m
+[0;32mI (7805) 语音识别:   - 最小静音时长: 400 ms[0m
+[0;32mI (7805) 语音识别: 正在加载唤醒词检测模型...[0m
+[0;32mI (7815) 语音识别: 内存状态检查:[0m
+[0;32mI (7815) 语音识别:   - 总可用内存: 8298 KB[0m
+[0;32mI (7825) 语音识别:   - 内部RAM: 130 KB[0m
+[0;32mI (7825) 语音识别:   - PSRAM: 8167 KB[0m
+[0;32mI (7825) 语音识别: 开始加载模型文件...[0m
+[0;32mI (7835) 语音识别: 尝试加载模型 (第1次)...[0m
+[0;32mI (7835) MODEL_LOADER: The storage free size is 23232 KB[0m
+[0;32mI (7845) MODEL_LOADER: The partition size is 4400 KB[0m
+[0;32mI (7845) MODEL_LOADER: Successfully load srmodels[0m
+[0;32mI (7855) 语音识别: ✓ 选择唤醒词模型: wn9_hiesp[0m
+MC Quantized wakenet9: wakeNet9_v1h24_Hi,ESP_3_0.63_0.635, tigger:v4, mode:0, p:0, (Dec 16 2025 14:45:55)
+[0;32mI (7925) 语音识别: 正在初始化噪音抑制模块...[0m
+[0;32mI (7935) 语音识别: ✓ 选择噪音抑制模型: nsnet2[0m
+[0;32mI (7975) WebSocketClient: 🔗 WebSocket已连接[0m
+[0;32mI (7975) 语音识别: 🔗 WebSocket已连接[0m
+[0;32mI (8035) 语音识别: ✓ 噪音抑制初始化成功[0m
+[0;32mI (8045) 语音识别:   - 噪音抑制模型: nsnet2[0m
+[0;32mI (8045) 语音识别:   - 采样率: 16000 Hz[0m
+[0;32mI (8045) AudioManager: 初始化音频管理器...[0m
+[0;32mI (8045) AudioManager: ✓ 录音环形缓冲区分配成功，大小: 480000 字节 (15 秒)[0m
+[0;32mI (8055) AudioManager: ✓ 响应缓冲区分配成功，大小: 32000 字节 (1 秒)[0m
+[0;32mI (8065) AudioManager: ✓ 流式播放环形缓冲区分配成功，大小: 320 KB (~10 秒)[0m
+[0;32mI (8075) AudioManager: ✓ 互斥锁创建成功[0m
+[0;32mI (8075) 语音识别: ✓ 音频管理器初始化成功[0m
+[0;32mI (8085) 语音识别: ✓ 使用WebSocket进行通信[0m
+[0;32mI (8085) 语音识别: ✓ 智能语音助手系统配置完成:[0m
+[0;32mI (8095) 语音识别:   - 唤醒词模型: wn9_hiesp[0m
+[0;32mI (8095) 语音识别:   - 音频块大小: 1024 字节[0m
+[0;32mI (8105) 语音识别:   - 噪音抑制: 已启用[0m
+[0;32mI (8105) 语音识别:   - 检测置信度: 90%[0m
+[0;32mI (8115) 语音识别: 正在启动智能语音助手...[0m
+[0;32mI (8115) 语音识别: 请对着麦克风说出唤醒词 'Hi,ESP'[0m
+[0;32mI (8125) 语音识别: 系统启动完成，请对着麦克风说 'Hi,ESP'...[0m
+[0;32mI (9095) websocket_client: Started[0m
+[0;32mI (9595) WebSocketClient: 🔗 WebSocket已连接[0m
+[0;32mI (9595) 语音识别: 🔗 WebSocket已连接[0m
+[0;32mI (17175) 语音识别: 🎉 检测到唤醒词 'Hi,ESP'！[0m
+=== 唤醒词检测成功！模型: wn9_hiesp ===
+[0;32mI (17175) 语音识别: 播放欢迎音频...[0m
+[0;32mI (17175) AudioManager: 播放欢迎音频...[0m
+[0;32mI (18085) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (18085) bsp_board: 音频播放完成，播放了 28916 字节[0m
+[0;32mI (18085) AudioManager: ✓ 欢迎音频播放成功[0m
+[0;32mI (18085) 语音识别: 发送录音开始事件[0m
+[0;32mI (18085) AudioManager: 开始录音...[0m
+[0;32mI (18095) 语音识别: 开始录音，请说话...[0m
+[0;32mI (18295) 语音识别: 首次对话：检测到说话，开始实时传输...[0m
+[0;32mI (18295) 语音识别: 唤醒后首句，跳过预缓冲补发[0m
+[0;32mI (21675) 语音识别: VAD检测到用户说话结束，录音长度: 3.33 秒[0m
+[0;32mI (21675) AudioManager: 停止录音，当前长度: 53248 样本 (3.33 秒)[0m
+[0;32mI (21765) 语音识别: 发送录音结束事件[0m
+[0;32mI (21765) 语音识别: 等待服务器响应音频...[0m
+[0;32mI (81795) 语音识别: 🎵 开始流式音频播放[0m
+[0;32mI (81795) AudioManager: 开始流式音频播放[0m
+[0;32mI (81795) AudioManager: 播放任务启动（环形缓冲区模式）[0m
+[0;32mI (84055) 语音识别: 收到ping包，结束流式播放[0m
+[0;32mI (84055) AudioManager: 结束流式播放，等待播放任务排空缓冲区...[0m
+[0;32mI (90315) AudioManager: 缓冲区已空且流式传输完成，退出播放任务[0m
+[0;32mI (90385) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (90385) AudioManager: 播放任务结束[0m
+[0;32mI (90405) AudioManager: 流式播放完成[0m
+[0;32mI (90415) AudioManager: 开始录音...[0m
+[0;32mI (90415) 语音识别: 进入连续对话模式，请在10秒内继续说话...[0m
+[0;32mI (90445) 语音识别: 等待用户说话... 剩余 9 秒[0m
+[0;32mI (91455) 语音识别: 等待用户说话... 剩余 8 秒[0m
+[0;32mI (92475) 语音识别: 等待用户说话... 剩余 7 秒[0m
+[0;32mI (92535) 语音识别: 连续对话：检测到说话，开始实时传输...[0m
+[0;32mI (92535) 语音识别: 连续对话预缓冲（裁剪）：34304 → 8000 样本 (2.14 → 0.50 秒)[0m
+[0;32mI (95355) 语音识别: VAD检测到用户说话结束，录音长度: 4.96 秒[0m
+[0;32mI (95355) AudioManager: 停止录音，当前长度: 79360 样本 (4.96 秒)[0m
+[0;32mI (95405) 语音识别: 发送录音结束事件[0m
+[0;32mI (95405) 语音识别: 等待服务器响应音频...[0m
+[0;32mI (139985) 语音识别: 🎵 开始流式音频播放[0m
+[0;32mI (139985) AudioManager: 开始流式音频播放[0m
+[0;32mI (139985) AudioManager: 播放任务启动（环形缓冲区模式）[0m
+[0;32mI (143255) 语音识别: 收到ping包，结束流式播放[0m
+[0;32mI (143255) AudioManager: 结束流式播放，等待播放任务排空缓冲区...[0m
+[0;32mI (150295) AudioManager: 缓冲区已空且流式传输完成，退出播放任务[0m
+[0;32mI (150365) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (150365) AudioManager: 播放任务结束[0m
+[0;32mI (150405) AudioManager: 流式播放完成[0m
+[0;32mI (150415) AudioManager: 开始录音...[0m
+[0;32mI (150415) 语音识别: 进入连续对话模式，请在10秒内继续说话...[0m
+[0;32mI (150445) 语音识别: 等待用户说话... 剩余 9 秒[0m
+[0;32mI (151455) 语音识别: 等待用户说话... 剩余 8 秒[0m
+[0;32mI (152475) 语音识别: 等待用户说话... 剩余 7 秒[0m
+[0;32mI (153495) 语音识别: 等待用户说话... 剩余 6 秒[0m
+[0;32mI (154515) 语音识别: 等待用户说话... 剩余 5 秒[0m
+[0;32mI (155175) 语音识别: 连续对话：检测到说话，开始实时传输...[0m
+[0;32mI (155185) 语音识别: 连续对话预缓冲（裁剪）：76288 → 8000 样本 (4.77 → 0.50 秒)[0m
+[0;32mI (157905) 语音识别: VAD检测到用户说话结束，录音长度: 7.39 秒[0m
+[0;32mI (157905) AudioManager: 停止录音，当前长度: 118272 样本 (7.39 秒)[0m
+[0;32mI (157915) 语音识别: 发送录音结束事件[0m
+[0;32mI (157915) 语音识别: 等待服务器响应音频...[0m
+[0;32mI (190945) 语音识别: 🎵 开始流式音频播放[0m
+[0;32mI (190945) AudioManager: 开始流式音频播放[0m
+[0;32mI (190945) AudioManager: 播放任务启动（环形缓冲区模式）[0m
+[0;32mI (192395) 语音识别: 收到ping包，结束流式播放[0m
+[0;32mI (192395) AudioManager: 结束流式播放，等待播放任务排空缓冲区...[0m
+[0;32mI (195015) AudioManager: 缓冲区已空且流式传输完成，退出播放任务[0m
+[0;32mI (195085) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (195085) AudioManager: 播放任务结束[0m
+[0;32mI (195095) AudioManager: 流式播放完成[0m
+[0;32mI (195095) 语音识别: 收到JSON消息: {"event": "goodbye"}[0m
+[0;32mI (195095) 语音识别: 👋 收到 goodbye 信号，播放完毕后将结束对话[0m
+[0;32mI (195115) 语音识别: 👋 AI告别回复播放完毕，回到待唤醒状态[0m
+[0;32mI (195115) WebSocketClient: 🔌 自动重连任务已停止[0m
+[0;32mI (195115) WebSocketClient: 🔌 正在断开WebSocket连接...[0m
+[0;32mI (196105) WebSocketClient: ✅ WebSocket已完全断开[0m
+[0;32mI (196105) AudioManager: 停止录音，当前长度: 118272 样本 (7.39 秒)[0m
+[0;32mI (196105) 语音识别: 返回等待唤醒状态，请说出唤醒词 'Hi,ESP'[0m
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x159c
+load:0x403c8700,len:0xd24
+load:0x403cb700,len:0x2f48
+entry 0x403c8924
+[0;32mI (24) boot: ESP-IDF v5.5 2nd stage bootloader[0m
+[0;32mI (25) boot: compile time May  3 2026 10:36:32[0m
+[0;32mI (25) boot: Multicore bootloader[0m
+[0;32mI (25) boot: chip revision: v0.2[0m
+[0;32mI (27) boot: efuse block revision: v1.4[0m
+[0;32mI (31) boot.esp32s3: Boot SPI Speed : 80MHz[0m
+[0;32mI (35) boot.esp32s3: SPI Mode       : DIO[0m
+[0;32mI (39) boot.esp32s3: SPI Flash Size : 8MB[0m
+[0;32mI (42) boot: Enabling RNG early entropy source...[0m
+[0;32mI (47) boot: Partition Table:[0m
+[0;32mI (50) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (62) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (69) boot:  2 factory          factory app      00 00 00010000 00226000[0m
+[0;32mI (75) boot:  3 model            Unknown data     01 82 00236000 0044c000[0m
+[0;32mI (82) boot: End of partition table[0m
+[0;32mI (85) esp_image: segment 0: paddr=00010020 vaddr=3c110020 size=3e97ch (256380) map[0m
+[0;32mI (138) esp_image: segment 1: paddr=0004e9a4 vaddr=3fca1000 size=01674h (  5748) load[0m
+[0;32mI (139) esp_image: segment 2: paddr=00050020 vaddr=42000020 size=103cd0h (1064144) map[0m
+[0;32mI (329) esp_image: segment 3: paddr=00153cf8 vaddr=3fca2674 size=0563ch ( 22076) load[0m
+[0;32mI (334) esp_image: segment 4: paddr=0015933c vaddr=40374000 size=1cf14h (118548) load[0m
+[0;32mI (360) esp_image: segment 5: paddr=00176258 vaddr=600fe000 size=00020h (    32) load[0m
+[0;32mI (372) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (372) boot: Disabling RNG early entropy source...[0m
+[0;32mI (382) octal_psram: vendor id    : 0x0d (AP)[0m
+[0;32mI (382) octal_psram: dev id       : 0x02 (generation 3)[0m
+[0;32mI (383) octal_psram: density      : 0x03 (64 Mbit)[0m
+[0;32mI (385) octal_psram: good-die     : 0x01 (Pass)[0m
+[0;32mI (389) octal_psram: Latency      : 0x01 (Fixed)[0m
+[0;32mI (393) octal_psram: VCC          : 0x01 (3V)[0m
+[0;32mI (397) octal_psram: SRF          : 0x01 (Fast Refresh)[0m
+[0;32mI (402) octal_psram: BurstType    : 0x01 (Hybrid Wrap)[0m
+[0;32mI (407) octal_psram: BurstLen     : 0x01 (32 Byte)[0m
+[0;32mI (412) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)[0m
+[0;32mI (417) octal_psram: DriveStrength: 0x00 (1/1)[0m
+[0;32mI (421) esp_psram: Found 8MB PSRAM device[0m
+[0;32mI (425) esp_psram: Speed: 40MHz[0m
+[0;32mI (428) cpu_start: Multicore app[0m
+[0;32mI (1162) esp_psram: SPI SRAM memory test OK[0m
+[0;32mI (1170) cpu_start: Pro cpu start user code[0m
+[0;32mI (1170) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (1171) app_init: Application information:[0m
+[0;32mI (1171) app_init: Project name:     speech_commands_recognition[0m
+[0;32mI (1177) app_init: App version:      6626c6f-dirty[0m
+[0;32mI (1181) app_init: Compile time:     May  6 2026 11:52:37[0m
+[0;32mI (1186) app_init: ELF file SHA256:  88000aa5b...[0m
+[0;32mI (1191) app_init: ESP-IDF:          v5.5[0m
+[0;32mI (1194) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (1198) efuse_init: Max chip rev:     v0.99 [0m
+[0;32mI (1202) efuse_init: Chip rev:         v0.2[0m
+[0;32mI (1206) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1213) heap_init: At 3FCB12D8 len 00038438 (225 KiB): RAM[0m
+[0;32mI (1218) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM[0m
+[0;32mI (1223) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM[0m
+[0;32mI (1228) heap_init: At 600FE020 len 00001FC8 (7 KiB): RTCRAM[0m
+[0;32mI (1234) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator[0m
+[0;32mI (1241) spi_flash: detected chip: boya[0m
+[0;32mI (1244) spi_flash: flash io: dio[0m
+[0;32mI (1247) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (1254) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (1260) coexist: coex firmware version: 831ec70[0m
+[0;32mI (1284) coexist: coexist rom version e7ae62f[0m
+[0;32mI (1285) main_task: Started on CPU0[0m
+[0;32mI (1295) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+[0;32mI (1295) main_task: Calling app_main()[0m
+[0;32mI (1315) NVS_Config: 从 NVS 加载配置...[0m
+[0;32mI (1315) NVS_Config: NVS 配置加载完成: SSID=ubuntu, Password长度=9, WS_URI=ws://10.209.155.181:8888[0m
+[0;32mI (1315) 语音识别: 启动 BLE 配网服务...[0m
+[0;32mI (1325) BLE_INIT: BT controller compile version [4713a69][0m
+[0;32mI (1325) BLE_INIT: Feature Config, ADV:1, BLE_50:1, DTM:1, SCAN:1, CCA:0, SMP:1, CONNECT:1[0m
+[0;32mI (1335) BLE_INIT: Bluetooth MAC: e8:f6:0a:85:4c:02[0m
+[0;32mI (1345) phy_init: phy_version 701,f4f1da3a,Mar  3 2025,15:50:10[0m
+[0;32mI (1385) NimBLE: GAP procedure initiated: stop advertising.[0m
+
+[0;32mI (1395) NimBLE: Failed to restore IRKs from store; status=8[0m
+
+[0;32mI (1395) NimBLE: GAP procedure initiated: advertise; [0m
+[0;32mI (1395) NimBLE: disc_mode=2[0m
+[0;32mI (1395) NimBLE:  adv_channel_map=0 own_addr_type=0 adv_filter_policy=0 adv_itvl_min=160 adv_itvl_max=320[0m
+[0;32mI (1405) NimBLE: [0m
+
+[0;32mI (1405) BLE_Prov: 📡 BLE 广播已启动，设备名: XinOu-4C02[0m
+[0;32mI (1415) BLE_Prov: ✅ BLE 配网服务已启动，设备名: XinOu-4C02[0m
+[0;32mI (1425) 语音识别: 正在初始化外接LED (GPIO21)...[0m
+[0;32mI (1425) 语音识别: ✓ 外接LED初始化成功，初始状态：关闭[0m
+[0;32mI (1435) 语音识别: 正在连接WiFi...[0m
+[0;32mI (1435) pp: pp rom version: e7ae62f[0m
+[0;32mI (1435) net80211: net80211 rom version: e7ae62f[0m
+[0;32mI (1455) wifi:wifi driver task: 3fcc781c, prio:23, stack:6656, core=0[0m
+[0;32mI (1465) wifi:wifi firmware version: f3dbad7[0m
+[0;32mI (1465) wifi:wifi certification version: v7.0[0m
+[0;32mI (1465) wifi:config NVS flash: enabled[0m
+[0;32mI (1465) wifi:config nano formatting: disabled[0m
+[0;32mI (1465) wifi:Init data frame dynamic rx buffer num: 32[0m
+[0;32mI (1475) wifi:Init static rx mgmt buffer num: 5[0m
+[0;32mI (1475) wifi:Init management short buffer num: 32[0m
+[0;32mI (1475) wifi:Init dynamic tx buffer num: 32[0m
+[0;32mI (1485) wifi:Init static tx FG buffer num: 2[0m
+[0;32mI (1485) wifi:Init static rx buffer size: 1600[0m
+[0;32mI (1495) wifi:Init static rx buffer num: 10[0m
+[0;32mI (1495) wifi:Init dynamic rx buffer num: 32[0m
+[0;32mI (1505) wifi_init: rx ba win: 6[0m
+[0;32mI (1505) wifi_init: accept mbox: 6[0m
+[0;32mI (1505) wifi_init: tcpip mbox: 32[0m
+[0;32mI (1505) wifi_init: udp mbox: 6[0m
+[0;32mI (1515) wifi_init: tcp mbox: 6[0m
+[0;32mI (1515) wifi_init: tcp tx win: 5760[0m
+[0;32mI (1515) wifi_init: tcp rx win: 5760[0m
+[0;32mI (1525) wifi_init: tcp mss: 1440[0m
+[0;32mI (1525) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (1525) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;32mI (1535) wifi:mode : sta (e8:f6:0a:85:4c:00)[0m
+[0;32mI (1535) wifi:enable tsf[0m
+[0;32mI (1535) wifi:Set ps type: 0, coexist: 1[0m
+
+[0;32mI (1545) wifi:Coexist!!! Wi-Fi station would only keep waked when available[0m
+
+[0;32mI (1555) WiFiManager: 📶 WiFi初始化完成，正在连接到 ubuntu[0m
+[0;32mI (1565) wifi:new:<11,0>, old:<1,0>, ap:<255,255>, sta:<11,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (1565) wifi:state: init -> auth (0xb0)[0m
+[0;32mI (1595) wifi:state: auth -> init (0x1c0)[0m
+[0;32mI (1605) wifi:Coexist: Wi-Fi connect fail, apply reconnect coex policy[0m
+
+[0;32mI (1605) wifi:new:<11,0>, old:<11,0>, ap:<255,255>, sta:<11,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (1605) WiFiManager: 🔄 重试连接WiFi... (1/5)[0m
+[0;32mI (1605) WiFiManager: ❌ WiFi连接失败[0m
+[0;32mI (6425) wifi:Coexist: Wi-Fi connect fail, apply reconnect coex policy[0m
+
+[0;32mI (6425) WiFiManager: 🔄 重试连接WiFi... (2/5)[0m
+[0;32mI (6425) WiFiManager: ❌ WiFi连接失败[0m
+[0;32mI (6425) wifi:new:<11,0>, old:<11,0>, ap:<255,255>, sta:<11,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (6435) wifi:state: init -> auth (0xb0)[0m
+[0;32mI (6445) wifi:state: auth -> assoc (0x0)[0m
+[0;32mI (6475) wifi:state: assoc -> run (0x10)[0m
+[0;32mI (6495) wifi:connected with ubuntu, aid = 4, channel 11, BW20, bssid = 8e:4e:e6:e5:79:ff[0m
+[0;32mI (6495) wifi:security: WPA2-PSK, phy: bgn, rssi: -23[0m
+[0;32mI (6495) wifi:pm start, type: 0[0m
+
+[0;32mI (6495) wifi:dp: 1, bi: 102400, li: 3, scale listen interval from 307200 us to 307200 us[0m
+[0;32mI (6505) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000[0m
+[0;32mI (6525) wifi:dp: 2, bi: 102400, li: 4, scale listen interval from 307200 us to 409600 us[0m
+[0;32mI (6525) wifi:AP's beacon interval = 102400 us, DTIM period = 2[0m
+[0;32mI (6535) wifi:<ba-add>idx:0 (ifx:0, 8e:4e:e6:e5:79:ff), tid:0, ssn:1, winSize:64[0m
+[0;32mI (7535) esp_netif_handlers: sta ip: 10.209.155.185, mask: 255.255.255.0, gw: 10.209.155.32[0m
+[0;32mI (7535) WiFiManager: 🏠 获得IP地址:10.209.155.185[0m
+[0;32mI (7535) WiFiManager: ✅ WiFi连接成功: ubuntu[0m
+[0;32mI (7535) 语音识别: ✅ WiFi 已连接[0m
+[0;32mI (7545) 语音识别: 正在通过 mDNS 发现服务器...[0m
+[0;32mI (7665) 语音识别: mDNS 解析成功: xinou.local -> 10.209.155.181[0m
+[0;32mI (7665) WebSocketClient: 🌐 正在连接WebSocket服务器: ws://10.209.155.181:8888[0m
+[0;32mI (7675) websocket_client: Started[0m
+[0;32mI (7675) WebSocketClient: 🔄 尝试重新连接WebSocket...[0m
+[0;32mI (7675) WebSocketClient: ✅ 自动重连任务已启动[0m
+[0;32mI (7685) 语音识别: 正在初始化INMP441数字麦克风...[0m
+[0;32mI (7695) 语音识别: 音频参数: 16kHz采样率, 单声道, 16位[0m
+[0;32mI (7695) bsp_board: 🚀 正在初始化ESP32-S3-DevKitC-1 + INMP441麦克风[0m
+[0;32mI (7705) bsp_board: 🎵 音频参数: 采样率=16000Hz, 声道数=1, 位深=16位[0m
+[0;32mI (7775) bsp_board: I2S 初始化成功[0m
+[0;32mI (7775) 语音识别: ✓ INMP441麦克风初始化成功[0m
+[0;32mI (7775) 语音识别: 正在初始化音频播放功能...[0m
+[0;32mI (7775) 语音识别: 音频播放参数: 16kHz采样率, 单声道, 16位[0m
+[0;32mI (7785) bsp_board: ✅ MAX98357A SD引脚已初始化（GPIO8）[0m
+[0;32mI (7785) bsp_board: ✅ I2S音频播放初始化成功[0m
+[0;32mI (7795) 语音识别: ✓ 音频播放初始化成功[0m
+[0;32mI (7795) 语音识别: 正在初始化语音活动检测（VAD）...[0m
+[0;32mI (7805) 语音识别: ✓ VAD初始化成功[0m
+[0;32mI (7805) 语音识别:   - VAD模式: 1 (中等灵敏度)[0m
+[0;32mI (7815) 语音识别:   - 采样率: 16000 Hz[0m
+[0;32mI (7815) 语音识别:   - 帧长度: 30 ms[0m
+[0;32mI (7815) 语音识别:   - 最小语音时长: 200 ms[0m
+[0;32mI (7825) 语音识别:   - 最小静音时长: 400 ms[0m
+[0;32mI (7825) 语音识别: 正在加载唤醒词检测模型...[0m
+[0;32mI (7835) 语音识别: 内存状态检查:[0m
+[0;32mI (7835) 语音识别:   - 总可用内存: 8299 KB[0m
+[0;32mI (7845) 语音识别:   - 内部RAM: 132 KB[0m
+[0;32mI (7845) 语音识别:   - PSRAM: 8167 KB[0m
+[0;32mI (7845) 语音识别: 开始加载模型文件...[0m
+[0;32mI (7855) 语音识别: 尝试加载模型 (第1次)...[0m
+[0;32mI (7855) MODEL_LOADER: The storage free size is 23232 KB[0m
+[0;32mI (7865) MODEL_LOADER: The partition size is 4400 KB[0m
+[0;32mI (7865) MODEL_LOADER: Successfully load srmodels[0m
+[0;32mI (7875) 语音识别: ✓ 选择唤醒词模型: wn9_hiesp[0m
+MC Quantized wakenet9: wakeNet9_v1h24_Hi,ESP_3_0.63_0.635, tigger:v4, mode:0, p:0, (Dec 16 2025 14:45:55)
+[0;32mI (7945) 语音识别: 正在初始化噪音抑制模块...[0m
+[0;32mI (7955) 语音识别: ✓ 选择噪音抑制模型: nsnet2[0m
+[0;32mI (8055) 语音识别: ✓ 噪音抑制初始化成功[0m
+[0;32mI (8055) 语音识别:   - 噪音抑制模型: nsnet2[0m
+[0;32mI (8055) 语音识别:   - 采样率: 16000 Hz[0m
+[0;32mI (8055) AudioManager: 初始化音频管理器...[0m
+[0;32mI (8065) AudioManager: ✓ 录音环形缓冲区分配成功，大小: 480000 字节 (15 秒)[0m
+[0;32mI (8075) AudioManager: ✓ 响应缓冲区分配成功，大小: 32000 字节 (1 秒)[0m
+[0;32mI (8075) AudioManager: ✓ 流式播放环形缓冲区分配成功，大小: 320 KB (~10 秒)[0m
+[0;32mI (8085) AudioManager: ✓ 互斥锁创建成功[0m
+[0;32mI (8095) 语音识别: ✓ 音频管理器初始化成功[0m
+[0;32mI (8095) 语音识别: ✓ 使用WebSocket进行通信[0m
+[0;32mI (8105) 语音识别: ✓ 智能语音助手系统配置完成:[0m
+[0;32mI (8105) 语音识别:   - 唤醒词模型: wn9_hiesp[0m
+[0;32mI (8115) 语音识别:   - 音频块大小: 1024 字节[0m
+[0;32mI (8115) 语音识别:   - 噪音抑制: 已启用[0m
+[0;32mI (8125) 语音识别:   - 检测置信度: 90%[0m
+[0;32mI (8125) 语音识别: 正在启动智能语音助手...[0m
+[0;32mI (8135) 语音识别: 请对着麦克风说出唤醒词 'Hi,ESP'[0m
+[0;32mI (8135) 语音识别: 系统启动完成，请对着麦克风说 'Hi,ESP'...[0m
+[0;32mI (9535) WebSocketClient: 🔗 WebSocket已连接[0m
+[0;32mI (9535) 语音识别: 🔗 WebSocket已连接[0m
+[0;32mI (10645) websocket_client: Started[0m
+[0;32mI (10665) WebSocketClient: 🔗 WebSocket已连接[0m
+[0;32mI (10665) 语音识别: 🔗 WebSocket已连接[0m
+[0;32mI (14405) 语音识别: 🎉 检测到唤醒词 'Hi,ESP'！[0m
+=== 唤醒词检测成功！模型: wn9_hiesp ===
+[0;32mI (14415) 语音识别: 播放欢迎音频...[0m
+[0;32mI (14415) AudioManager: 播放欢迎音频...[0m
+[0;32mI (15315) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (15315) bsp_board: 音频播放完成，播放了 28916 字节[0m
+[0;32mI (15315) AudioManager: ✓ 欢迎音频播放成功[0m
+[0;32mI (15315) 语音识别: 发送录音开始事件[0m
+[0;32mI (15315) AudioManager: 开始录音...[0m
+[0;32mI (15325) 语音识别: 开始录音，请说话...[0m
+[0;32mI (15505) 语音识别: 首次对话：检测到说话，开始实时传输...[0m
+[0;32mI (15505) 语音识别: 唤醒后首句，跳过预缓冲补发[0m
+[0;32mI (18575) 语音识别: VAD检测到用户说话结束，录音长度: 3.30 秒[0m
+[0;32mI (18575) AudioManager: 停止录音，当前长度: 52736 样本 (3.30 秒)[0m
+[0;32mI (18625) 语音识别: 发送录音结束事件[0m
+[0;32mI (18625) 语音识别: 等待服务器响应音频...[0m
+[0;32mI (22095) 语音识别: 🎵 开始流式音频播放[0m
+[0;32mI (22095) AudioManager: 开始流式音频播放[0m
+[0;32mI (22095) AudioManager: 播放任务启动（环形缓冲区模式）[0m
+[0;32mI (24765) 语音识别: 收到ping包，结束流式播放[0m
+[0;32mI (24765) AudioManager: 结束流式播放，等待播放任务排空缓冲区...[0m
+[0;32mI (30385) AudioManager: 缓冲区已空且流式传输完成，退出播放任务[0m
+[0;32mI (30465) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (30465) AudioManager: 播放任务结束[0m
+[0;32mI (30515) AudioManager: 流式播放完成[0m
+[0;32mI (30515) AudioManager: 开始录音...[0m
+[0;32mI (30515) 语音识别: 进入连续对话模式，请在10秒内继续说话...[0m
+[0;32mI (30545) 语音识别: 等待用户说话... 剩余 9 秒[0m
+[0;32mI (31565) 语音识别: 等待用户说话... 剩余 8 秒[0m
+[0;32mI (31835) 语音识别: 连续对话：检测到说话，开始实时传输...[0m
+[0;32mI (31835) 语音识别: 连续对话预缓冲（裁剪）：21504 → 8000 样本 (1.34 → 0.50 秒)[0m
+[0;32mI (36225) 语音识别: VAD检测到用户说话结束，录音长度: 5.70 秒[0m
+[0;32mI (36225) AudioManager: 停止录音，当前长度: 91136 样本 (5.70 秒)[0m
+[0;32mI (36245) 语音识别: 发送录音结束事件[0m
+[0;32mI (36245) 语音识别: 等待服务器响应音频...[0m
+[0;32mI (38695) 语音识别: 🎵 开始流式音频播放[0m
+[0;32mI (38695) AudioManager: 开始流式音频播放[0m
+[0;32mI (38695) AudioManager: 播放任务启动（环形缓冲区模式）[0m
+[0;32mI (42495) 语音识别: 收到ping包，结束流式播放[0m
+[0;32mI (42495) AudioManager: 结束流式播放，等待播放任务排空缓冲区...[0m
+[0;32mI (50725) AudioManager: 缓冲区已空且流式传输完成，退出播放任务[0m
+[0;32mI (50805) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (50805) AudioManager: 播放任务结束[0m
+[0;32mI (50845) AudioManager: 流式播放完成[0m
+[0;32mI (50865) AudioManager: 开始录音...[0m
+[0;32mI (50865) 语音识别: 进入连续对话模式，请在10秒内继续说话...[0m
+[0;32mI (50895) 语音识别: 等待用户说话... 剩余 9 秒[0m
+[0;32mI (51905) 语音识别: 等待用户说话... 剩余 8 秒[0m
+[0;32mI (51935) 语音识别: 连续对话：检测到说话，开始实时传输...[0m
+[0;32mI (51935) 语音识别: 连续对话预缓冲（裁剪）：17408 → 8000 样本 (1.09 → 0.50 秒)[0m
+[0;32mI (61685) 语音识别: VAD检测到用户说话结束，录音长度: 8.54 秒[0m
+[0;32mI (61685) AudioManager: 停止录音，当前长度: 136704 样本 (8.54 秒)[0m
+[0;32mI (61725) 语音识别: 发送录音结束事件[0m
+[0;32mI (61725) 语音识别: 等待服务器响应音频...[0m
+[0;32mI (65005) 语音识别: 🎵 开始流式音频播放[0m
+[0;32mI (65005) AudioManager: 开始流式音频播放[0m
+[0;32mI (65005) AudioManager: 播放任务启动（环形缓冲区模式）[0m
+[0;32mI (68915) 语音识别: 收到ping包，结束流式播放[0m
+[0;32mI (68915) AudioManager: 结束流式播放，等待播放任务排空缓冲区...[0m
+[0;32mI (76305) AudioManager: 缓冲区已空且流式传输完成，退出播放任务[0m
+[0;32mI (76375) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (76375) AudioManager: 播放任务结束[0m
+[0;32mI (76415) AudioManager: 流式播放完成[0m
+[0;32mI (76445) AudioManager: 开始录音...[0m
+[0;32mI (76445) 语音识别: 进入连续对话模式，请在10秒内继续说话...[0m
+[0;32mI (76475) 语音识别: 等待用户说话... 剩余 9 秒[0m
+[0;32mI (77495) 语音识别: 等待用户说话... 剩余 8 秒[0m
+[0;32mI (78365) 语音识别: 连续对话：检测到说话，开始实时传输...[0m
+[0;32mI (78365) 语音识别: 连续对话预缓冲（裁剪）：30720 → 8000 样本 (1.92 → 0.50 秒)[0m
+[0;32mI (80885) 语音识别: VAD检测到用户说话结束，录音长度: 3.97 秒[0m
+[0;32mI (80885) AudioManager: 停止录音，当前长度: 63488 样本 (3.97 秒)[0m
+[0;32mI (80975) 语音识别: 发送录音结束事件[0m
+[0;32mI (80975) 语音识别: 等待服务器响应音频...[0m
+[0;32mI (83335) 语音识别: 🎵 开始流式音频播放[0m
+[0;32mI (83335) AudioManager: 开始流式音频播放[0m
+[0;32mI (83335) AudioManager: 播放任务启动（环形缓冲区模式）[0m
+[1;31mE (133485) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:[0m
+[1;31mE (133485) task_wdt:  - IDLE1 (CPU 1)[0m
+[1;31mE (133485) task_wdt: Tasks currently running:[0m
+[1;31mE (133485) task_wdt: CPU 0: main[0m
+[1;31mE (133485) task_wdt: CPU 1: audio_play[0m
+[1;31mE (133485) task_wdt: Print CPU 1 backtrace[0m
+
+
+Backtrace: 0x4037D136:0x3FCA5230 0x4037C56D:0x3FCA5250 0x4037D14B:0x3FCE22D0 0x4037D1A5:0x3FCE22F0 0x403856A6:0x3FCE2310 0x4200F147:0x3FCE2330 0x403834B5:0x3FCE2350
+
+[1;31mE (142665) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:[0m
+[1;31mE (142665) task_wdt:  - IDLE1 (CPU 1)[0m
+[1;31mE (142665) task_wdt: Tasks currently running:[0m
+[1;31mE (142665) task_wdt: CPU 0: main[0m
+[1;31mE (142665) task_wdt: CPU 1: audio_play[0m
+[1;31mE (142665) task_wdt: Print CPU 1 backtrace[0m
+
+
+Backtrace: 0x4037D136:0x3FCA5230 0x4037C56D:0x3FCA5250 0x4200F147:0x3FCE2330 0x403834B5:0x3FCE2350
+
+[0;33mW (147275) 语音识别: ⏰ 等待AI响应超时(60秒)，强制结束流式播放[0m
+[0;32mI (147275) AudioManager: 结束流式播放，等待播放任务排空缓冲区...[0m
+[0;32mI (147275) AudioManager: 缓冲区已空且流式传输完成，退出播放任务[0m
+[0;32mI (147355) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (147355) AudioManager: 播放任务结束[0m
+[0;32mI (147375) AudioManager: 流式播放完成[0m
+[1;31mE (147405) websocket_client: Websocket client is not connected[0m
+[1;31mE (147405) WebSocketClient: ❌ 发送文本失败[0m
+[0;32mI (147405) AudioManager: 开始录音...[0m
+[0;32mI (147405) 语音识别: 进入连续对话模式，请在10秒内继续说话...[0m
+[0;32mI (147435) 语音识别: 等待用户说话... 剩余 9 秒[0m
+[0;32mI (148445) 语音识别: 等待用户说话... 剩余 8 秒[0m
+[0;32mI (148685) 语音识别: 连续对话：检测到说话，开始实时传输...[0m
+[0;32mI (148685) 语音识别: 连续对话预缓冲（裁剪）：22016 → 8000 样本 (1.38 → 0.50 秒)[0m
+[1;31mE (148685) websocket_client: Websocket client is not connected[0m
+[1;31mE (148695) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (148695) websocket_client: Websocket client is not connected[0m
+[1;31mE (148705) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (148705) websocket_client: Websocket client is not connected[0m
+[1;31mE (148715) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (148715) websocket_client: Websocket client is not connected[0m
+[1;31mE (148725) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (148835) websocket_client: Websocket client is not connected[0m
+[1;31mE (148835) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (148945) websocket_client: Websocket client is not connected[0m
+[1;31mE (148945) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (149075) websocket_client: Websocket client is not connected[0m
+[1;31mE (149075) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (149195) websocket_client: Websocket client is not connected[0m
+[1;31mE (149195) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (149315) websocket_client: Websocket client is not connected[0m
+[1;31mE (149315) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (149435) websocket_client: Websocket client is not connected[0m
+[1;31mE (149435) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (149585) websocket_client: Websocket client is not connected[0m
+[1;31mE (149585) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (149705) websocket_client: Websocket client is not connected[0m
+[1;31mE (149705) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (149825) websocket_client: Websocket client is not connected[0m
+[1;31mE (149825) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (149945) websocket_client: Websocket client is not connected[0m
+[1;31mE (149945) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (150095) websocket_client: Websocket client is not connected[0m
+[1;31mE (150095) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (150215) websocket_client: Websocket client is not connected[0m
+[1;31mE (150215) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (150335) websocket_client: Websocket client is not connected[0m
+[1;31mE (150335) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (150455) websocket_client: Websocket client is not connected[0m
+[1;31mE (150455) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (150605) websocket_client: Websocket client is not connected[0m
+[1;31mE (150605) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (150725) websocket_client: Websocket client is not connected[0m
+[1;31mE (150725) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (150845) websocket_client: Websocket client is not connected[0m
+[1;31mE (150845) WebSocketClient: ❌ 发送二进制数据失败[0m
+[1;31mE (150995) websocket_client: Websocket client is not connected[0m
+[1;31mE (150995) WebSocketClient: ❌ 发送二进制数据失败[0m
+[0;32mI (150995) 语音识别: VAD检测到用户说话结束，录音长度: 3.68 秒[0m
+[0;32mI (150995) AudioManager: 停止录音，当前长度: 58880 样本 (3.68 秒)[0m
+[1;31mE (151005) websocket_client: Websocket client is not connected[0m
+[1;31mE (151005) WebSocketClient: ❌ 发送文本失败[0m
+[0;32mI (151015) 语音识别: 发送录音结束事件[0m
+[0;32mI (151015) 语音识别: 等待服务器响应音频...[0m
+[0;33mW (211025) 语音识别: ⏰ 等待AI响应超时(60秒)，强制结束流式播放[0m
+[1;31mE (211055) websocket_client: Websocket client is not connected[0m
+[1;31mE (211055) WebSocketClient: ❌ 发送文本失败[0m
+[0;32mI (211055) AudioManager: 开始录音...[0m
+[0;32mI (211055) 语音识别: 进入连续对话模式，请在10秒内继续说话...[0m
+[0;32mI (211095) 语音识别: 等待用户说话... 剩余 9 秒[0m
+[0;32mI (212105) 语音识别: 等待用户说话... 剩余 8 秒[0m
+[0;32mI (213125) 语音识别: 等待用户说话... 剩余 7 秒[0m
+[0;32mI (214145) 语音识别: 等待用户说话... 剩余 6 秒[0m
+[0;32mI (215165) 语音识别: 等待用户说话... 剩余 5 秒[0m
+[0;32mI (216185) 语音识别: 等待用户说话... 剩余 4 秒[0m
+[0;32mI (217235) 语音识别: 等待用户说话... 剩余 3 秒[0m
+[0;32mI (218255) 语音识别: 等待用户说话... 剩余 2 秒[0m
+[0;32mI (219275) 语音识别: 等待用户说话... 剩余 1 秒[0m
+[0;33mW (221075) 语音识别: ⏰ 超过10秒没说话，退出对话[0m
+[0;32mI (221075) AudioManager: 停止录音，当前长度: 160256 样本 (10.02 秒)[0m
+[0;32mI (221075) 语音识别: 播放再见音频...[0m
+[0;32mI (221075) AudioManager: 播放再见音频...[0m
+[0;32mI (222415) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (222415) bsp_board: 音频播放完成，播放了 38978 字节[0m
+[0;32mI (222415) AudioManager: ✓ 再见音频播放成功[0m
+[0;32mI (222415) WebSocketClient: 🔌 自动重连任务已停止[0m
+[0;32mI (222415) WebSocketClient: 🔌 正在断开WebSocket连接...[0m
+[0;33mW (222425) websocket_client: Client was not started[0m
+[0;32mI (222435) WebSocketClient: ✅ WebSocket已完全断开[0m
+[0;32mI (222435) AudioManager: 停止录音，当前长度: 160256 样本 (10.02 秒)[0m
+[0;32mI (222445) 语音识别: 返回等待唤醒状态，请说出唤醒词 'Hi,ESP'[0m
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x159c
+load:0x403c8700,len:0xd24
+load:0x403cb700,len:0x2f48
+entry 0x403c8924
+[0;32mI (24) boot: ESP-IDF v5.5 2nd stage bootloader[0m
+[0;32mI (25) boot: compile time May  3 2026 10:36:32[0m
+[0;32mI (25) boot: Multicore bootloader[0m
+[0;32mI (25) boot: chip revision: v0.2[0m
+[0;32mI (27) boot: efuse block revision: v1.4[0m
+[0;32mI (31) boot.esp32s3: Boot SPI Speed : 80MHz[0m
+[0;32mI (35) boot.esp32s3: SPI Mode       : DIO[0m
+[0;32mI (39) boot.esp32s3: SPI Flash Size : 8MB[0m
+[0;32mI (42) boot: Enabling RNG early entropy source...[0m
+[0;32mI (47) boot: Partition Table:[0m
+[0;32mI (50) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (62) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (69) boot:  2 factory          factory app      00 00 00010000 00226000[0m
+[0;32mI (75) boot:  3 model            Unknown data     01 82 00236000 0044c000[0m
+[0;32mI (82) boot: End of partition table[0m
+[0;32mI (85) esp_image: segment 0: paddr=00010020 vaddr=3c110020 size=3e97ch (256380) map[0m
+[0;32mI (138) esp_image: segment 1: paddr=0004e9a4 vaddr=3fca1000 size=01674h (  5748) load[0m
+[0;32mI (139) esp_image: segment 2: paddr=00050020 vaddr=42000020 size=103cd0h (1064144) map[0m
+[0;32mI (329) esp_image: segment 3: paddr=00153cf8 vaddr=3fca2674 size=0563ch ( 22076) load[0m
+[0;32mI (334) esp_image: segment 4: paddr=0015933c vaddr=40374000 size=1cf14h (118548) load[0m
+[0;32mI (360) esp_image: segment 5: paddr=00176258 vaddr=600fe000 size=00020h (    32) load[0m
+[0;32mI (372) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (372) boot: Disabling RNG early entropy source...[0m
+[0;32mI (382) octal_psram: vendor id    : 0x0d (AP)[0m
+[0;32mI (382) octal_psram: dev id       : 0x02 (generation 3)[0m
+[0;32mI (383) octal_psram: density      : 0x03 (64 Mbit)[0m
+[0;32mI (385) octal_psram: good-die     : 0x01 (Pass)[0m
+[0;32mI (389) octal_psram: Latency      : 0x01 (Fixed)[0m
+[0;32mI (393) octal_psram: VCC          : 0x01 (3V)[0m
+[0;32mI (397) octal_psram: SRF          : 0x01 (Fast Refresh)[0m
+[0;32mI (402) octal_psram: BurstType    : 0x01 (Hybrid Wrap)[0m
+[0;32mI (407) octal_psram: BurstLen     : 0x01 (32 Byte)[0m
+[0;32mI (412) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)[0m
+[0;32mI (417) octal_psram: DriveStrength: 0x00 (1/1)[0m
+[0;32mI (421) esp_psram: Found 8MB PSRAM device[0m
+[0;32mI (425) esp_psram: Speed: 40MHz[0m
+[0;32mI (428) cpu_start: Multicore app[0m
+[0;32mI (1162) esp_psram: SPI SRAM memory test OK[0m
+[0;32mI (1170) cpu_start: Pro cpu start user code[0m
+[0;32mI (1170) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (1171) app_init: Application information:[0m
+[0;32mI (1171) app_init: Project name:     speech_commands_recognition[0m
+[0;32mI (1177) app_init: App version:      6626c6f-dirty[0m
+[0;32mI (1181) app_init: Compile time:     May  6 2026 11:52:37[0m
+[0;32mI (1186) app_init: ELF file SHA256:  88000aa5b...[0m
+[0;32mI (1191) app_init: ESP-IDF:          v5.5[0m
+[0;32mI (1194) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (1198) efuse_init: Max chip rev:     v0.99 [0m
+[0;32mI (1202) efuse_init: Chip rev:         v0.2[0m
+[0;32mI (1206) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (1213) heap_init: At 3FCB12D8 len 00038438 (225 KiB): RAM[0m
+[0;32mI (1218) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM[0m
+[0;32mI (1223) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM[0m
+[0;32mI (1228) heap_init: At 600FE020 len 00001FC8 (7 KiB): RTCRAM[0m
+[0;32mI (1234) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator[0m
+[0;32mI (1241) spi_flash: detected chip: boya[0m
+[0;32mI (1244) spi_flash: flash io: dio[0m
+[0;32mI (1247) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (1254) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (1260) coexist: coex firmware version: 831ec70[0m
+[0;32mI (1284) coexist: coexist rom version e7ae62f[0m
+[0;32mI (1285) main_task: Started on CPU0[0m
+[0;32mI (1295) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+[0;32mI (1295) main_task: Calling app_main()[0m
+[0;32mI (1315) NVS_Config: 从 NVS 加载配置...[0m
+[0;32mI (1315) NVS_Config: NVS 配置加载完成: SSID=ubuntu, Password长度=9, WS_URI=ws://10.209.155.181:8888[0m
+[0;32mI (1315) 语音识别: 启动 BLE 配网服务...[0m
+[0;32mI (1325) BLE_INIT: BT controller compile version [4713a69][0m
+[0;32mI (1325) BLE_INIT: Feature Config, ADV:1, BLE_50:1, DTM:1, SCAN:1, CCA:0, SMP:1, CONNECT:1[0m
+[0;32mI (1335) BLE_INIT: Bluetooth MAC: e8:f6:0a:85:4c:02[0m
+[0;32mI (1345) phy_init: phy_version 701,f4f1da3a,Mar  3 2025,15:50:10[0m
+[0;32mI (1385) NimBLE: GAP procedure initiated: stop advertising.[0m
+
+[0;32mI (1385) NimBLE: Failed to restore IRKs from store; status=8[0m
+
+[0;32mI (1395) NimBLE: GAP procedure initiated: advertise; [0m
+[0;32mI (1395) NimBLE: disc_mode=2[0m
+[0;32mI (1395) NimBLE:  adv_channel_map=0 own_addr_type=0 adv_filter_policy=0 adv_itvl_min=160 adv_itvl_max=320[0m
+[0;32mI (1405) NimBLE: [0m
+
+[0;32mI (1405) BLE_Prov: 📡 BLE 广播已启动，设备名: XinOu-4C02[0m
+[0;32mI (1415) BLE_Prov: ✅ BLE 配网服务已启动，设备名: XinOu-4C02[0m
+[0;32mI (1415) 语音识别: 正在初始化外接LED (GPIO21)...[0m
+[0;32mI (1425) 语音识别: ✓ 外接LED初始化成功，初始状态：关闭[0m
+[0;32mI (1435) 语音识别: 正在连接WiFi...[0m
+[0;32mI (1435) pp: pp rom version: e7ae62f[0m
+[0;32mI (1435) net80211: net80211 rom version: e7ae62f[0m
+[0;32mI (1455) wifi:wifi driver task: 3fcc781c, prio:23, stack:6656, core=0[0m
+[0;32mI (1465) wifi:wifi firmware version: f3dbad7[0m
+[0;32mI (1465) wifi:wifi certification version: v7.0[0m
+[0;32mI (1465) wifi:config NVS flash: enabled[0m
+[0;32mI (1465) wifi:config nano formatting: disabled[0m
+[0;32mI (1465) wifi:Init data frame dynamic rx buffer num: 32[0m
+[0;32mI (1475) wifi:Init static rx mgmt buffer num: 5[0m
+[0;32mI (1475) wifi:Init management short buffer num: 32[0m
+[0;32mI (1475) wifi:Init dynamic tx buffer num: 32[0m
+[0;32mI (1485) wifi:Init static tx FG buffer num: 2[0m
+[0;32mI (1485) wifi:Init static rx buffer size: 1600[0m
+[0;32mI (1495) wifi:Init static rx buffer num: 10[0m
+[0;32mI (1495) wifi:Init dynamic rx buffer num: 32[0m
+[0;32mI (1505) wifi_init: rx ba win: 6[0m
+[0;32mI (1505) wifi_init: accept mbox: 6[0m
+[0;32mI (1505) wifi_init: tcpip mbox: 32[0m
+[0;32mI (1505) wifi_init: udp mbox: 6[0m
+[0;32mI (1515) wifi_init: tcp mbox: 6[0m
+[0;32mI (1515) wifi_init: tcp tx win: 5760[0m
+[0;32mI (1515) wifi_init: tcp rx win: 5760[0m
+[0;32mI (1525) wifi_init: tcp mss: 1440[0m
+[0;32mI (1525) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (1525) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;32mI (1535) wifi:mode : sta (e8:f6:0a:85:4c:00)[0m
+[0;32mI (1535) wifi:enable tsf[0m
+[0;32mI (1535) wifi:Set ps type: 0, coexist: 1[0m
+
+[0;32mI (1545) wifi:Coexist!!! Wi-Fi station would only keep waked when available[0m
+
+[0;32mI (1555) WiFiManager: 📶 WiFi初始化完成，正在连接到 ubuntu[0m
+[0;32mI (1555) wifi:new:<11,0>, old:<1,0>, ap:<255,255>, sta:<11,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (1565) wifi:state: init -> auth (0xb0)[0m
+[0;32mI (1605) wifi:state: auth -> assoc (0x0)[0m
+[0;32mI (1635) wifi:state: assoc -> run (0x10)[0m
+[0;32mI (1645) wifi:connected with ubuntu, aid = 5, channel 11, BW20, bssid = 8e:4e:e6:e5:79:ff[0m
+[0;32mI (1645) wifi:security: WPA2-PSK, phy: bgn, rssi: -29[0m
+[0;32mI (1655) wifi:pm start, type: 0[0m
+
+[0;32mI (1655) wifi:dp: 1, bi: 102400, li: 3, scale listen interval from 307200 us to 307200 us[0m
+[0;32mI (1665) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000[0m
+[0;32mI (1685) wifi:<ba-add>idx:0 (ifx:0, 8e:4e:e6:e5:79:ff), tid:0, ssn:1, winSize:64[0m
+[0;32mI (1715) wifi:dp: 2, bi: 102400, li: 4, scale listen interval from 307200 us to 409600 us[0m
+[0;32mI (1715) wifi:AP's beacon interval = 102400 us, DTIM period = 2[0m
+[0;32mI (2685) esp_netif_handlers: sta ip: 10.209.155.185, mask: 255.255.255.0, gw: 10.209.155.32[0m
+[0;32mI (2685) WiFiManager: 🏠 获得IP地址:10.209.155.185[0m
+[0;32mI (2685) WiFiManager: ✅ WiFi连接成功: ubuntu[0m
+[0;32mI (2685) 语音识别: ✅ WiFi 已连接[0m
+[0;32mI (2695) 语音识别: 正在通过 mDNS 发现服务器...[0m
+[0;32mI (2855) 语音识别: mDNS 解析成功: xinou.local -> 10.209.155.181[0m
+[0;32mI (2855) WebSocketClient: 🌐 正在连接WebSocket服务器: ws://10.209.155.181:8888[0m
+[0;32mI (2855) websocket_client: Started[0m
+[0;32mI (2855) WebSocketClient: 🔄 尝试重新连接WebSocket...[0m
+[0;32mI (2865) WebSocketClient: ✅ 自动重连任务已启动[0m
+[0;32mI (2865) 语音识别: 正在初始化INMP441数字麦克风...[0m
+[0;32mI (2875) 语音识别: 音频参数: 16kHz采样率, 单声道, 16位[0m
+[0;32mI (2885) bsp_board: 🚀 正在初始化ESP32-S3-DevKitC-1 + INMP441麦克风[0m
+[0;32mI (2885) bsp_board: 🎵 音频参数: 采样率=16000Hz, 声道数=1, 位深=16位[0m
+[0;32mI (2955) bsp_board: I2S 初始化成功[0m
+[0;32mI (2955) 语音识别: ✓ INMP441麦克风初始化成功[0m
+[0;32mI (2955) 语音识别: 正在初始化音频播放功能...[0m
+[0;32mI (2955) 语音识别: 音频播放参数: 16kHz采样率, 单声道, 16位[0m
+[0;32mI (2965) bsp_board: ✅ MAX98357A SD引脚已初始化（GPIO8）[0m
+[0;32mI (2965) bsp_board: ✅ I2S音频播放初始化成功[0m
+[0;32mI (2975) 语音识别: ✓ 音频播放初始化成功[0m
+[0;32mI (2975) 语音识别: 正在初始化语音活动检测（VAD）...[0m
+[0;32mI (2985) 语音识别: ✓ VAD初始化成功[0m
+[0;32mI (2985) 语音识别:   - VAD模式: 1 (中等灵敏度)[0m
+[0;32mI (2995) 语音识别:   - 采样率: 16000 Hz[0m
+[0;32mI (2995) 语音识别:   - 帧长度: 30 ms[0m
+[0;32mI (2995) 语音识别:   - 最小语音时长: 200 ms[0m
+[0;32mI (3005) 语音识别:   - 最小静音时长: 400 ms[0m
+[0;32mI (3005) 语音识别: 正在加载唤醒词检测模型...[0m
+[0;32mI (3015) 语音识别: 内存状态检查:[0m
+[0;32mI (3015) 语音识别:   - 总可用内存: 8299 KB[0m
+[0;32mI (3025) 语音识别:   - 内部RAM: 132 KB[0m
+[0;32mI (3025) 语音识别:   - PSRAM: 8167 KB[0m
+[0;32mI (3025) 语音识别: 开始加载模型文件...[0m
+[0;32mI (3035) 语音识别: 尝试加载模型 (第1次)...[0m
+[0;32mI (3035) MODEL_LOADER: The storage free size is 23232 KB[0m
+[0;32mI (3045) MODEL_LOADER: The partition size is 4400 KB[0m
+[0;32mI (3045) MODEL_LOADER: Successfully load srmodels[0m
+[0;32mI (3055) 语音识别: ✓ 选择唤醒词模型: wn9_hiesp[0m
+MC Quantized wakenet9: wakeNet9_v1h24_Hi,ESP_3_0.63_0.635, tigger:v4, mode:0, p:0, (Dec 16 2025 14:45:55)
+[0;32mI (3125) 语音识别: 正在初始化噪音抑制模块...[0m
+[0;32mI (3135) 语音识别: ✓ 选择噪音抑制模型: nsnet2[0m
+[0;32mI (3235) 语音识别: ✓ 噪音抑制初始化成功[0m
+[0;32mI (3235) 语音识别:   - 噪音抑制模型: nsnet2[0m
+[0;32mI (3235) 语音识别:   - 采样率: 16000 Hz[0m
+[0;32mI (3235) AudioManager: 初始化音频管理器...[0m
+[0;32mI (3245) AudioManager: ✓ 录音环形缓冲区分配成功，大小: 480000 字节 (15 秒)[0m
+[0;32mI (3255) AudioManager: ✓ 响应缓冲区分配成功，大小: 32000 字节 (1 秒)[0m
+[0;32mI (3255) AudioManager: ✓ 流式播放环形缓冲区分配成功，大小: 320 KB (~10 秒)[0m
+[0;32mI (3265) AudioManager: ✓ 互斥锁创建成功[0m
+[0;32mI (3275) 语音识别: ✓ 音频管理器初始化成功[0m
+[0;32mI (3275) 语音识别: ✓ 使用WebSocket进行通信[0m
+[0;32mI (3285) 语音识别: ✓ 智能语音助手系统配置完成:[0m
+[0;32mI (3285) 语音识别:   - 唤醒词模型: wn9_hiesp[0m
+[0;32mI (3295) 语音识别:   - 音频块大小: 1024 字节[0m
+[0;32mI (3295) 语音识别:   - 噪音抑制: 已启用[0m
+[0;32mI (3305) 语音识别:   - 检测置信度: 90%[0m
+[0;32mI (3305) 语音识别: 正在启动智能语音助手...[0m
+[0;32mI (3315) 语音识别: 请对着麦克风说出唤醒词 'Hi,ESP'[0m
+[0;32mI (3315) 语音识别: 系统启动完成，请对着麦克风说 'Hi,ESP'...[0m
+[0;32mI (3575) WebSocketClient: 🔗 WebSocket已连接[0m
+[0;32mI (3575) 语音识别: 🔗 WebSocket已连接[0m
+[0;32mI (4685) websocket_client: Started[0m
+[0;32mI (4715) WebSocketClient: 🔗 WebSocket已连接[0m
+[0;32mI (4715) 语音识别: 🔗 WebSocket已连接[0m
+[0;32mI (17265) 语音识别: 🎉 检测到唤醒词 'Hi,ESP'！[0m
+=== 唤醒词检测成功！模型: wn9_hiesp ===
+[0;32mI (17265) 语音识别: 播放欢迎音频...[0m
+[0;32mI (17265) AudioManager: 播放欢迎音频...[0m
+[0;32mI (18175) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (18175) bsp_board: 音频播放完成，播放了 28916 字节[0m
+[0;32mI (18175) AudioManager: ✓ 欢迎音频播放成功[0m
+[0;32mI (18175) 语音识别: 发送录音开始事件[0m
+[0;32mI (18175) AudioManager: 开始录音...[0m
+[0;32mI (18185) 语音识别: 开始录音，请说话...[0m
+[0;32mI (18365) 语音识别: 首次对话：检测到说话，开始实时传输...[0m
+[0;32mI (18365) 语音识别: 唤醒后首句，跳过预缓冲补发[0m
+[0;32mI (21915) 语音识别: VAD检测到用户说话结束，录音长度: 3.94 秒[0m
+[0;32mI (21915) AudioManager: 停止录音，当前长度: 62976 样本 (3.94 秒)[0m
+[0;32mI (21995) 语音识别: 发送录音结束事件[0m
+[0;32mI (21995) 语音识别: 等待服务器响应音频...[0m
+[0;32mI (26215) 语音识别: 🎵 开始流式音频播放[0m
+[0;32mI (26215) AudioManager: 开始流式音频播放[0m
+[0;32mI (26215) AudioManager: 播放任务启动（环形缓冲区模式）[0m
+[0;32mI (28875) 语音识别: 收到ping包，结束流式播放[0m
+[0;32mI (28875) AudioManager: 结束流式播放，等待播放任务排空缓冲区...[0m
+[0;32mI (36595) AudioManager: 缓冲区已空且流式传输完成，退出播放任务[0m
+[0;32mI (36665) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (36665) AudioManager: 播放任务结束[0m
+[0;32mI (36675) AudioManager: 流式播放完成[0m
+[0;32mI (36675) AudioManager: 开始录音...[0m
+[0;32mI (36675) 语音识别: 进入连续对话模式，请在10秒内继续说话...[0m
+[0;32mI (36705) 语音识别: 等待用户说话... 剩余 9 秒[0m
+[0;32mI (37725) 语音识别: 等待用户说话... 剩余 8 秒[0m
+[0;32mI (38205) 语音识别: 连续对话：检测到说话，开始实时传输...[0m
+[0;32mI (38205) 语音识别: 连续对话预缓冲（裁剪）：24576 → 8000 样本 (1.54 → 0.50 秒)[0m
+[0;32mI (41715) 语音识别: VAD检测到用户说话结束，录音长度: 4.93 秒[0m
+[0;32mI (41715) AudioManager: 停止录音，当前长度: 78848 样本 (4.93 秒)[0m
+[0;32mI (41725) 语音识别: 发送录音结束事件[0m
+[0;32mI (41725) 语音识别: 等待服务器响应音频...[0m
+[0;32mI (45485) 语音识别: 🎵 开始流式音频播放[0m
+[0;32mI (45485) AudioManager: 开始流式音频播放[0m
+[0;32mI (45485) AudioManager: 播放任务启动（环形缓冲区模式）[0m
+[0;32mI (48445) 语音识别: 收到ping包，结束流式播放[0m
+[0;32mI (48445) AudioManager: 结束流式播放，等待播放任务排空缓冲区...[0m
+[0;32mI (54535) AudioManager: 缓冲区已空且流式传输完成，退出播放任务[0m
+[0;32mI (54605) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (54605) AudioManager: 播放任务结束[0m
+[0;32mI (54645) AudioManager: 流式播放完成[0m
+[0;32mI (54645) AudioManager: 开始录音...[0m
+[0;32mI (54645) 语音识别: 进入连续对话模式，请在10秒内继续说话...[0m
+[0;32mI (54675) 语音识别: 等待用户说话... 剩余 9 秒[0m
+[0;32mI (55695) 语音识别: 等待用户说话... 剩余 8 秒[0m
+[0;32mI (56145) 语音识别: 连续对话：检测到说话，开始实时传输...[0m
+[0;32mI (56145) 语音识别: 连续对话预缓冲（裁剪）：24064 → 8000 样本 (1.50 → 0.50 秒)[0m
+[0;32mI (61155) 语音识别: VAD检测到用户说话结束，录音长度: 5.47 秒[0m
+[0;32mI (61155) AudioManager: 停止录音，当前长度: 87552 样本 (5.47 秒)[0m
+[0;32mI (63265) 语音识别: 发送录音结束事件[0m
+[0;32mI (63265) 语音识别: 等待服务器响应音频...[0m
+[0;32mI (66145) 语音识别: 🎵 开始流式音频播放[0m
+[0;32mI (66145) AudioManager: 开始流式音频播放[0m
+[0;32mI (66145) AudioManager: 播放任务启动（环形缓冲区模式）[0m
+[0;32mI (68385) 语音识别: 收到ping包，结束流式播放[0m
+[0;32mI (68385) AudioManager: 结束流式播放，等待播放任务排空缓冲区...[0m
+[0;32mI (72995) AudioManager: 缓冲区已空且流式传输完成，退出播放任务[0m
+[0;32mI (73065) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (73065) AudioManager: 播放任务结束[0m
+[0;32mI (73085) AudioManager: 流式播放完成[0m
+[0;32mI (73105) AudioManager: 开始录音...[0m
+[0;32mI (73105) 语音识别: 进入连续对话模式，请在10秒内继续说话...[0m
+[0;32mI (73135) 语音识别: 等待用户说话... 剩余 9 秒[0m
+[0;32mI (74145) 语音识别: 等待用户说话... 剩余 8 秒[0m
+[0;32mI (75165) 语音识别: 等待用户说话... 剩余 7 秒[0m
+[0;32mI (76185) 语音识别: 等待用户说话... 剩余 6 秒[0m
+[0;32mI (77205) 语音识别: 等待用户说话... 剩余 5 秒[0m
+[0;32mI (78225) 语音识别: 等待用户说话... 剩余 4 秒[0m
+[0;32mI (79245) 语音识别: 等待用户说话... 剩余 3 秒[0m
+[0;32mI (80265) 语音识别: 等待用户说话... 剩余 2 秒[0m
+[0;32mI (81285) 语音识别: 等待用户说话... 剩余 1 秒[0m
+[0;33mW (83115) 语音识别: ⏰ 超过10秒没说话，退出对话[0m
+[0;32mI (83115) AudioManager: 停止录音，当前长度: 160256 样本 (10.02 秒)[0m
+[0;32mI (83115) 语音识别: 播放再见音频...[0m
+[0;32mI (83115) AudioManager: 播放再见音频...[0m
+[0;32mI (84455) bsp_board: ✅ I2S音频输出已停止[0m
+[0;32mI (84455) bsp_board: 音频播放完成，播放了 38978 字节[0m
+[0;32mI (84455) AudioManager: ✓ 再见音频播放成功[0m
+[0;32mI (84455) WebSocketClient: 🔌 自动重连任务已停止[0m
+[0;32mI (84455) WebSocketClient: 🔌 正在断开WebSocket连接...[0m
+[0;32mI (84765) WebSocketClient: ✅ WebSocket已完全断开[0m
+[0;32mI (84765) AudioManager: 停止录音，当前长度: 160256 样本 (10.02 秒)[0m
+[0;32mI (84765) 语音识别: 返回等待唤醒状态，请说出唤醒词 'Hi,ESP'[0m
