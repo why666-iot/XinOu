@@ -1,9 +1,0 @@
-Command: D:\Espressif\python_env\idf5.5_py3.10_env\Scripts\python.exe D:\Espressif\frameworks\esp-idf-v5.5\components/esptool_py/esptool/esptool.py -p com17 -b 460800 --before default_reset --after hard_reset --chip esp32s3 erase_flash
-esptool.py v4.12.dev1
-Serial port com17
-
-A fatal error occurred: Could not open com17, the port is busy or doesn't exist.
-(could not open port 'com17': FileNotFoundError(2, 'ϵͳҲָļ', None, 2))
-
-Hint: Check if the port is correct and ESP connected
-
